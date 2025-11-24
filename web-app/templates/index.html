@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <h2>Dashboard</h2>
+  <p>
+    Welcome to DocKeeper - your document expiry tracking system.
+  </p>
+
+  <h3>Getting Started</h3>
+  <ul>
+    <li>View documents: <code>GET /api/documents</code></li>
+    <li>Create a document: <code>POST /api/documents</code></li>
+    <li>Check system health: <code>GET /api/health</code></li>
+  </ul>
+{% endblock %}
