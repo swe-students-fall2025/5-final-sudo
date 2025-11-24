@@ -6,12 +6,12 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the reminder_service package
-COPY reminder_service/ ./reminder_service/
+# Copy application code
+COPY . .
 
 # Set PYTHONPATH to include the current directory
 ENV PYTHONPATH=/app
 
 # Run the reminder service
-CMD ["python", "-m", "reminder_service.main"]
+CMD ["python", "main.py"]
 

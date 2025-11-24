@@ -2,15 +2,33 @@
 import os
 
 from flask import Flask, render_template
+from pymongo import MongoClient
 
 from routers.health import bp as health_bp
 from routers.documents import bp as documents_bp
 
 APP_NAME = "DocKeeper - Expiry Tracker"
 
-# MongoDB configuration for future use
+# MongoDB configuration
 MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
 MONGO_DB_NAME = os.getenv("MONGO_DB_NAME", "dockeeper")
+
+# Global MongoDB client
+_mongo_client = None
+
+
+def get_mongo_client():
+    """Get or create MongoDB client."""
+    global _mongo_client
+    if _mongo_client is None:
+        _mongo_client = MongoClient(MONGO_URI)
+    return _mongo_client
+
+
+def get_db():
+    """Get MongoDB database."""
+    client = get_mongo_client()
+    return client[MONGO_DB_NAME]
 
 
 def create_app() -> Flask:
