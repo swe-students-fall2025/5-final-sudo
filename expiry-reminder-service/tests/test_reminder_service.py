@@ -2,13 +2,13 @@
 import os
 import sys
 
-# Make sure the expiry-reminder-service directory (where reminder_service/ lives) is on sys.path
+# Make sure the expiry-reminder-service directory is on sys.path
 CURRENT_DIR = os.path.dirname(__file__)
 PROJECT_ROOT = os.path.dirname(CURRENT_DIR)
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
-from reminder_service.logic import compute_risk_level
+from logic import compute_risk_level
 
 
 def test_compute_risk_level_basic():
