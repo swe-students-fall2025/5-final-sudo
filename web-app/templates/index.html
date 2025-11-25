@@ -1,15 +1,179 @@
 {% extends "base.html" %}
 
 {% block content %}
-  <h2>Dashboard</h2>
-  <p>
-    Welcome to DocKeeper - your document expiry tracking system.
-  </p>
+  <h2>Document Tracker</h2>
 
-  <h3>Getting Started</h3>
-  <ul>
-    <li>View documents: <code>GET /api/documents</code></li>
-    <li>Create a document: <code>POST /api/documents</code></li>
-    <li>Check system health: <code>GET /api/health</code></li>
-  </ul>
+  <h3>Add Document</h3>
+  <form id="addForm">
+    <label>Document Type:</label>
+    <select id="doc_type" required onchange="toggleAdvancedFields()">
+      <option value="passport">Passport</option>
+      <option value="visa">Visa</option>
+      <option value="driver_license">Driver License</option>
+      <option value="permit">Permit</option>
+      <option value="car_registration">Car Registration</option>
+      <option value="insurance">Insurance</option>
+      <option value="lease">Lease</option>
+      <option value="subscription">Subscription</option>
+      <option value="warranty">Warranty</option>
+      <option value="other">Other</option>
+    </select><br>
+    
+    <label>Label (optional):</label>
+    <input type="text" id="label" placeholder="e.g., 'Work', 'Personal'"><br>
+    
+    <label>Expiry Date:</label>
+    <input type="date" id="expiry_date" required><br>
+    
+    <div id="advancedToggle" style="display: none;">
+      <button type="button" onclick="document.getElementById('advancedFields').style.display='block'; this.style.display='none';">Advanced Settings</button>
+    </div>
+    
+    <div id="advancedFields" style="display: none;">
+      <label>Importance:</label>
+      <select id="importance">
+        <option value="">Auto-set by type</option>
+        <option value="2">Low</option>
+        <option value="3">Medium</option>
+        <option value="4">High</option>
+        <option value="5">Critical</option>
+      </select><br>
+      
+      <label>Lead Time Days:</label>
+      <input type="number" id="lead_time" min="1" placeholder="Auto-set by type"><br>
+    </div>
+    
+    <label>Notes (optional):</label>
+    <textarea id="notes" placeholder="Additional notes"></textarea><br>
+    
+    <button type="submit">Add Document</button>
+  </form>
+
+  <h3>Documents</h3>
+  <button onclick="loadDocuments()">Refresh List</button>
+  <div id="documentList"></div>
+
+  <script>
+    function toggleAdvancedFields() {
+      const docType = document.getElementById('doc_type').value;
+      const advancedToggle = document.getElementById('advancedToggle');
+      const advancedFields = document.getElementById('advancedFields');
+      const advancedButton = advancedToggle.querySelector('button');
+      
+      if (docType === 'other') {
+        advancedFields.style.display = 'block';
+        advancedToggle.style.display = 'none';
+      } else {
+        advancedFields.style.display = 'none';
+        advancedToggle.style.display = 'block';
+        if (advancedButton) {
+          advancedButton.style.display = 'inline-block';
+        }
+      }
+    }
+
+    function getRiskColor(risk) {
+      const colors = {
+        'CRITICAL': '#ff0000',
+        'HIGH': '#ff6600',
+        'MEDIUM': '#ffaa00',
+        'LOW': '#00aa00'
+      };
+      return colors[risk] || '#666';
+    }
+    
+    function getImportanceLabel(importance) {
+      const labels = {
+        2: 'Low',
+        3: 'Medium',
+        4: 'High',
+        5: 'Critical'
+      };
+      return labels[importance] || importance;
+    }
+
+    async function deleteDocument(id) {
+      if (!confirm('Delete this document?')) return;
+      
+      const response = await fetch(`/api/documents/${id}`, {
+        method: 'DELETE'
+      });
+
+      if (response.ok) {
+        loadDocuments();
+      } else {
+        alert('Error deleting document');
+      }
+    }
+
+    async function loadDocuments() {
+      const response = await fetch('/api/documents');
+      const docs = await response.json();
+      const list = document.getElementById('documentList');
+      
+      if (docs.length === 0) {
+        list.innerHTML = '<p>No documents yet</p>';
+        return;
+      }
+
+      list.innerHTML = '<div>' + docs.map(doc => {
+        const riskStyle = doc.last_risk ? `color: ${getRiskColor(doc.last_risk)}; font-weight: bold;` : '';
+        return `
+          <div style="border: 1px solid #ccc; padding: 10px; margin: 10px 0; border-radius: 5px;">
+            <strong style="font-size: 1.2em;">${doc.name}</strong><br>
+            <strong>Type:</strong> ${doc.doc_type || doc.category}<br>
+            <strong>Expires:</strong> ${doc.expiry_date}<br>
+            <strong>Importance:</strong> ${getImportanceLabel(doc.importance)} | <strong>Lead Time:</strong> ${doc.renewal_lead_time_days} days<br>
+            ${doc.last_risk ? `<strong style="${riskStyle}">Risk Level: ${doc.last_risk}</strong><br>` : ''}
+            ${doc.last_days_until !== undefined ? `<strong>Days Until Expiry:</strong> ${doc.last_days_until}<br>` : ''}
+            ${doc.last_checked_at ? `<em>Last checked: ${new Date(doc.last_checked_at).toLocaleString()}</em><br>` : ''}
+            ${doc.notes ? `<strong>Notes:</strong> ${doc.notes}<br>` : ''}
+            <button onclick="deleteDocument('${doc.id}')" style="margin-top: 5px; background: #ff4444; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 3px;">Delete</button>
+          </div>
+        `;
+      }).join('') + '</div>';
+    }
+
+    document.getElementById('addForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const docType = document.getElementById('doc_type').value;
+      const advancedVisible = document.getElementById('advancedFields').style.display === 'block';
+      
+      const doc = {
+        doc_type: docType,
+        label: document.getElementById('label').value || null,
+        expiry_date: document.getElementById('expiry_date').value,
+        notes: document.getElementById('notes').value || null
+      };
+      
+      // Only include importance and lead_time if advanced fields are visible
+      if (advancedVisible) {
+        const importance = document.getElementById('importance').value;
+        const leadTime = document.getElementById('lead_time').value;
+        if (importance) doc.importance = parseInt(importance);
+        if (leadTime) doc.renewal_lead_time_days = parseInt(leadTime);
+      }
+
+      const response = await fetch('/api/documents', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(doc)
+      });
+
+      if (response.ok) {
+        alert('Document added!');
+        document.getElementById('addForm').reset();
+        loadDocuments();
+      } else {
+        alert('Error adding document');
+      }
+    });
+
+    // Initialize advanced fields visibility on page load
+    toggleAdvancedFields();
+    
+    // Load documents on page load
+    loadDocuments();
+  </script>
 {% endblock %}
