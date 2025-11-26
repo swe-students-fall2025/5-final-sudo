@@ -1,255 +1,143 @@
-# DocKeeper - Document Expiry Tracker
+[![Lint](https://github.com/swe-students-fall2025/5-final-sudo/actions/workflows/lint.yml/badge.svg)](https://github.com/swe-students-fall2025/5-final-sudo/actions/workflows/lint.yml)
 
-[![Lint](https://github.com/USERNAME/REPO_NAME/actions/workflows/lint.yml/badge.svg)](https://github.com/USERNAME/REPO_NAME/actions/workflows/lint.yml)
-[![Web App CI/CD](https://github.com/USERNAME/REPO_NAME/actions/workflows/web-app.yml/badge.svg)](https://github.com/USERNAME/REPO_NAME/actions/workflows/web-app.yml)
-[![Reminder Service CI/CD](https://github.com/USERNAME/REPO_NAME/actions/workflows/reminder-service.yml/badge.svg)](https://github.com/USERNAME/REPO_NAME/actions/workflows/reminder-service.yml)
+# DocKeeper - Document Expiry Tracker
 
 ## Description
 
-DocKeeper is a document expiry tracking system designed to help users manage important documents and receive timely reminders before they expire. The system consists of two main subsystems:
+DocKeeper is a document expiry tracking system designed to help users manage important documents (IDs, permits, subscriptions, warranties, etc.) and receive timely reminders before they expire based on an automated risk calculation. The system runs as **three containers**:
 
-1. **Web Application**: A Flask-based web interface that allows users to add, view, and manage documents with expiry dates. The application provides a RESTful API for document management and a web dashboard for visualization.
+1. **MongoDB**: Shared database for all persisted data.
+2. **Web Application**: A Flask-based web interface + REST API for creating and viewing expiring items.
+3. **Expiry Reminder Service**: A background worker that periodically scans the database, calculates urgency/risk, and writes the latest computed status back into each item.
 
-2. **Expiry Reminder Service**: A background service that continuously monitors documents in the database, computes risk levels based on expiry dates and importance, and generates reminders for documents approaching their expiration.
-
-Both subsystems are containerized and communicate through a shared MongoDB database, making the system scalable and easy to deploy.
+All services communicate through MongoDB and are designed to be deployed together.
 
 ## Team Members
 
-- [Your Name](https://github.com/YOUR_USERNAME) - Add your GitHub profile link here
+- [Saud Alsheddy](https://github.com/Saud-Al5)
+- [Amy Liu](https://github.com/Amyliu2003)
+- [Pranathi Chinthalapani](https://github.com/PranathiChin)
+- [William Chan](https://github.com/wc2184)
+- [Kazi Hossain](https://github.com/kazisean)
 
 ## Docker Images
 
-- **Web App**: [docker.io/USERNAME/dockeeper-web-app](https://hub.docker.com/r/USERNAME/dockeeper-web-app)
-- **Reminder Service**: [docker.io/USERNAME/dockeeper-reminder-service](https://hub.docker.com/r/USERNAME/dockeeper-reminder-service)
+- **Web App**: TBD (will be published to Docker Hub before submission)
+- **Reminder Service**: TBD (will be published to Docker Hub before submission)
 
 ## Prerequisites
 
-- Docker and Docker Compose installed on your system
-- For local development: Python 3.11+ (optional, if running without Docker)
+- Docker + Docker Compose installed
 
-## Quick Start
+## Quick Start (Docker Compose)
 
-### Using Docker Compose (Recommended)
+1. Clone the repository:
+   ```bash
+   git clone <repository-url>
+   cd 5-final-sudo
+   ```
 
-The easiest way to run the entire system is using Docker Compose:
+2. Start all services:
+   ```bash
+   docker compose up --build
+   ```
 
-```bash
-# Clone the repository
-git clone <repository-url>
-cd 5-final-sudo
-
-# Start all services
-docker-compose up --build
-
-# Or run in detached mode
-docker-compose up --build -d
-```
-
-This will start:
-- **MongoDB** on port `27017`
-- **Web App** on port `8000` (accessible at http://localhost:8000)
+This starts:
+- **MongoDB** on `27017`
+- **Web App** on `8000`
 - **Reminder Service** running in the background
 
-To stop all services:
-```bash
-docker-compose down
-```
+Stop everything with:
+- `docker compose down`
 
-To view logs:
-```bash
-# All services
-docker-compose logs -f
+### Logs
 
-# Specific service
-docker-compose logs -f web-app
-docker-compose logs -f reminder-service
-```
+- View all logs: `docker compose logs -f`
+- View one service: `docker compose logs -f web-app` or `docker compose logs -f reminder-service`
 
-### Running Individual Services
+## Environment Setup
 
-#### Web App
+Docker Compose is already configured with defaults. If you want to override any environment variables locally, you can create a `.env` file:
 
 ```bash
-cd web-app
-docker build -t dockeeper-web-app .
-docker run -p 8000:8000 \
-  -e MONGO_URI=mongodb://localhost:27017 \
-  -e MONGO_DB_NAME=dockeeper \
-  dockeeper-web-app
+cp .env.example .env
 ```
 
-#### Reminder Service
-
-```bash
-cd expiry-reminder-service
-docker build -t dockeeper-reminder-service .
-docker run \
-  -e MONGO_URI=mongodb://localhost:27017 \
-  -e MONGO_DB_NAME=dockeeper \
-  -e REMINDER_INTERVAL_SECONDS=60 \
-  dockeeper-reminder-service
-```
+Right now, this provides all required environment variables for both services. You can customize values in `.env` if needed.
 
 ## Environment Variables
+
+DocKeeper is configured through environment variables (via Docker Compose).
 
 ### Web App
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `MONGO_URI` | `mongodb://localhost:27017` | MongoDB connection string |
+| `MONGO_URI` | `mongodb://mongodb:27017` | MongoDB connection string |
 | `MONGO_DB_NAME` | `dockeeper` | MongoDB database name |
 
 ### Reminder Service
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `MONGO_URI` | `mongodb://localhost:27017` | MongoDB connection string |
+| `MONGO_URI` | `mongodb://mongodb:27017` | MongoDB connection string |
 | `MONGO_DB_NAME` | `dockeeper` | MongoDB database name |
 | `REMINDER_INTERVAL_SECONDS` | `60` | Interval between reminder checks (in seconds) |
 
-## Configuration Files
+### Local `.env` (optional)
 
-### Environment File Example
+If you want a local `.env` file for Docker Compose, create `.env` in the project root and set values as needed. A reference sample is provided as `.env.example`.
 
-Create a `.env` file in the project root (not committed to version control):
+## Database Collections
 
-```env
-# MongoDB Configuration
-MONGO_URI=mongodb://localhost:27017
-MONGO_DB_NAME=dockeeper
+### `documents`
+Stores the “things that expire” users create.
 
-# Reminder Service Configuration
-REMINDER_INTERVAL_SECONDS=60
-```
+Core fields:
+- `doc_type` (string) - canonical type (e.g., `passport`, `subscription`, `other`)
+- `label` (string, optional) - user-provided label (like: "Netflix", "Work", "Mom")
+- `name` (string) - display name (generated from type + label)
+- `category` (string) - internal grouping derived from type
+- `expiry_date` (string) - typically `YYYY-MM-DD`
+- `renewal_lead_time_days` (int) - reminder window start (overridable)
+- `importance` (int) - internal weighting (overridable)
+- `notes` (string, optional)
 
-### Docker Compose Override
-
-You can also create a `docker-compose.override.yml` file to customize settings for local development:
-
-```yaml
-services:
-  web-app:
-    environment:
-      - MONGO_URI=mongodb://mongodb:27017
-      - MONGO_DB_NAME=dockeeper
-    volumes:
-      - ./web-app:/app
-    command: python main.py
-
-  reminder-service:
-    environment:
-      - REMINDER_INTERVAL_SECONDS=30
-```
-
-## Database Setup
-
-The MongoDB database is automatically initialized when the container starts. No manual setup is required. The database will be created with the name specified in `MONGO_DB_NAME` (default: `dockeeper`).
-
-### Database Collections
-
-- `documents`: Stores document information with fields:
-  - `name`: Document name
-  - `category`: Document category
-  - `expiry_date`: Expiry date (ISO format string)
-  - `importance`: Importance level (1-5)
-  - `renewal_lead_time_days`: Days before expiry to send reminders
-  - `notes`: Optional notes
+Worker-computed fields (written by the reminder service):
+- `last_risk` (string) - `LOW` / `MEDIUM` / `HIGH` / `CRITICAL`
+- `last_days_until` (int) - days remaining (negative means expired)
+- `last_checked_at` (datetime) - last time worker evaluated this document
 
 ## API Endpoints
 
 ### Health Check
-- `GET /api/health` - Returns service health status
+- `GET /api/health` - service health
 
 ### Documents
-- `GET /api/documents` - List all documents
-- `POST /api/documents` - Create a new document
-- `DELETE /api/documents/<doc_id>` - Delete a document
+- `GET /api/documents` - list documents
+- `POST /api/documents` - create a document
+- `DELETE /api/documents/<doc_id>` - delete a document
 
-### Example: Create a Document
+## Development Notes
 
-```bash
-curl -X POST http://localhost:8000/api/documents \
-  -H "Content-Type: application/json" \
-  -d '{
-    "doc_type": "passport",
-    "label": "US Passport",
-    "expiry_date": "2025-12-31",
-    "notes": "Renew before travel"
-  }'
-```
+This repo is currently designed to be run via Docker Compose will be ran online later.
 
-## Development
+## Code Quality
 
-### Local Development Setup
-
-1. Install Python dependencies:
-```bash
-# Web App
-cd web-app
-pip install -r requirements.txt
-
-# Reminder Service
-cd ../expiry-reminder-service
-pip install -r requirements.txt
-```
-
-2. Start MongoDB (using Docker):
-```bash
-docker run -d -p 27017:27017 --name mongodb mongo:7
-```
-
-3. Run services locally:
-```bash
-# Terminal 1: Web App
-cd web-app
-export MONGO_URI=mongodb://localhost:27017
-export MONGO_DB_NAME=dockeeper
-python main.py
-
-# Terminal 2: Reminder Service
-cd expiry-reminder-service
-export MONGO_URI=mongodb://localhost:27017
-export MONGO_DB_NAME=dockeeper
-python -m reminder_service.main
-```
-
-### Running Tests
+Before submitting changes, run linting and formatting checks:
 
 ```bash
-# Web App tests
-cd web-app
-pytest tests/ --cov=. --cov-report=html
-
-# Reminder Service tests
-cd expiry-reminder-service
-pytest tests/ --cov=. --cov-report=html
+# From web-app/ or expiry-reminder-service/
+pipenv install --dev
+pipenv run black --diff --check .
+pipenv run pylint --rcfile=../.pylintrc **/*.py
 ```
 
-## Project Structure
+**Note:** The `--rcfile=../.pylintrc` tells pylint to use our custom rules from the root directory (this makes sure pylint isn't too strict). The `**/*.py` checks all Python files in the current subsystem.
 
-```
-5-final-sudo/
-├── web-app/                 # Flask web application
-│   ├── main.py             # Application entry point
-│   ├── models.py           # Data models
-│   ├── routers/            # API routes
-│   ├── templates/          # HTML templates
-│   ├── tests/              # Unit tests
-│   ├── Dockerfile          # Web app container definition
-│   └── requirements.txt    # Python dependencies
-├── expiry-reminder-service/ # Background reminder service
-│   ├── reminder_service/   # Service package
-│   │   ├── main.py        # Service entry point
-│   │   └── logic.py       # Business logic
-│   ├── tests/             # Unit tests
-│   ├── Dockerfile         # Service container definition
-│   └── requirements.txt   # Python dependencies
-├── docker-compose.yml      # Orchestration configuration
-├── pyproject.toml          # Project configuration
-└── README.md              # This file
-```
+CI will automatically check these on pull requests.
 
 ## License
 
-See [LICENSE](./LICENSE) file for details.
+See [LICENSE](LICENSE) for details.
+
