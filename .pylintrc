@@ -1,0 +1,40 @@
+[MASTER]
+ignore=venv,.venv,__pycache__,build,dist
+ignore-patterns=test_.*\.py
+extension-pkg-allow-list=
+jobs=0
+py-version=3.11
+
+[MESSAGES CONTROL]
+disable=
+  C0114,  # missing-module-docstring
+  C0115,  # missing-class-docstring
+  C0116,  # missing-function-docstring
+  C0103,  # invalid-name (folder name "web-app" trips this)
+  C0415,  # import-outside-toplevel (Flask circular imports)
+  R0903,  # too-few-public-methods
+  R0913,  # too-many-arguments
+  R0914,  # too-many-locals
+  R0915,  # too-many-statements
+  W0511,  # fixme/todo
+  W0603,  # global-statement (MongoDB singleton pattern)
+  W0703,  # broad-except
+  W0621,  # redefined-outer-name (pytest fixtures)
+  W0401,  # wildcard-import
+  W0613,  # unused-argument (Flask route functions)
+  E0401   # import-error (optional dependencies)
+
+[FORMAT]
+max-line-length=100
+
+[DESIGN]
+max-args=8
+max-locals=25
+max-branches=15
+max-statements=60
+
+[TYPECHECK]
+ignored-modules=bson,pymongo
+
+[REPORTS]
+score=no

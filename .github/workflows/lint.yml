@@ -1,45 +1,38 @@
-name: Lint
-
-on:
-  push:
-    branches: [ main, master ]
-  pull_request:
-    branches: [ main, master ]
+name: lint-free
+on: [push, pull_request]
 
 jobs:
-  lint:
+  lint-and-format:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        service: [web-app, expiry-reminder-service]
-    
+        # repeat same job for each subsystem
+        subdir: [web-app, expiry-reminder-service]
+
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-      
-      - name: Install linting dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install flake8 black ruff mypy
-      
-      - name: Run Ruff (fast linter)
-        working-directory: ${{ matrix.service }}
-        run: |
-          ruff check . || true
-          ruff format --check . || true
-      
-      - name: Run Black (code formatter check)
-        working-directory: ${{ matrix.service }}
-        run: |
-          black --check . || true
-      
-      - name: Run Flake8
-        working-directory: ${{ matrix.service }}
-        run: |
-          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics || true
-          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics || true
 
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        if: ${{ hashFiles(format('{0}/**/*.py', matrix.subdir)) != '' }}
+        run: |
+          cd ${{ matrix.subdir }}
+          python -m pip install --upgrade pip
+          python -m pip install pipenv
+          pipenv sync --dev --python $(which python)
+
+      - name: Lint with pylint
+        if: ${{ hashFiles(format('{0}/**/*.py', matrix.subdir)) != '' }}
+        run: |
+          cd ${{ matrix.subdir }}
+          pipenv run pylint --rcfile=../.pylintrc **/*.py
+
+      - name: Format with black
+        if: ${{ hashFiles(format('{0}/**/*.py', matrix.subdir)) != '' }}
+        run: |
+          cd ${{ matrix.subdir }}
+          pipenv run black --diff --check .
