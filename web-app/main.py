@@ -6,6 +6,7 @@ from pymongo import MongoClient
 
 from routers.health import bp as health_bp
 from routers.documents import bp as documents_bp
+from routers.auth import bp as auth_bp
 
 APP_NAME = "DocKeeper - Expiry Tracker"
 
@@ -34,9 +35,15 @@ def get_db():
 def create_app() -> Flask:
     app = Flask(__name__, template_folder="templates")
 
+    # Sessions (required for login cookies)
+    app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "dev-change-me")
+    app.config["SESSION_COOKIE_HTTPONLY"] = True
+    app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+
     # Register blueprints
     app.register_blueprint(health_bp)
     app.register_blueprint(documents_bp)
+    app.register_blueprint(auth_bp)
 
     @app.route("/")
     def index():

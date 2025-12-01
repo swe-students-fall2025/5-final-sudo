@@ -1,6 +1,7 @@
 # web-app/routers/documents.py
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, g
 from bson import ObjectId
+from auth_utils import login_required
 
 bp = Blueprint("documents", __name__, url_prefix="/api/documents")
 
@@ -73,15 +74,17 @@ def coerce_lead_time(value, default: int) -> int:
 
 
 @bp.get("/")
+@login_required
 def list_documents():
     from main import get_db
 
     db = get_db()
-    docs = list(db.documents.find().sort("expiry_date", 1))
+    docs = list(db.documents.find({"user_id": g.user_id}).sort("expiry_date", 1))
     return jsonify([_serialize_doc(doc) for doc in docs])
 
 
 @bp.post("/")
+@login_required
 def create_document():
     from main import get_db
 
@@ -114,6 +117,8 @@ def create_document():
         "importance": importance,
         "renewal_lead_time_days": lead_time,
         "notes": notes,
+        # Ownership
+        "user_id": g.user_id,
         # Optional: helps the UI show “customized” badge if overrides were used
         "custom_overrides": {
             "importance": data.get("importance") is not None
@@ -130,13 +135,16 @@ def create_document():
 
 
 @bp.delete("/<doc_id>")
+@login_required
 def delete_document(doc_id):
     """Delete a document by ID."""
     from main import get_db
 
     try:
         db = get_db()
-        result = db.documents.delete_one({"_id": ObjectId(doc_id)})
+        result = db.documents.delete_one(
+            {"_id": ObjectId(doc_id), "user_id": g.user_id}
+        )
 
         if result.deleted_count == 0:
             return jsonify({"error": "Document not found"}), 404
