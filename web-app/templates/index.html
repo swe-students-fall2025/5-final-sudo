@@ -4,50 +4,130 @@
   <h2>Document Tracker</h2>
 
   <h3>Add Document</h3>
-  <form id="addForm">
-    <label>Document Type:</label>
-    <select id="doc_type" required onchange="toggleAdvancedFields()">
-      <option value="passport">Passport</option>
-      <option value="visa">Visa</option>
-      <option value="driver_license">Driver License</option>
-      <option value="permit">Permit</option>
-      <option value="car_registration">Car Registration</option>
-      <option value="insurance">Insurance</option>
-      <option value="lease">Lease</option>
-      <option value="subscription">Subscription</option>
-      <option value="warranty">Warranty</option>
-      <option value="other">Other</option>
-    </select><br>
+  
+<div class="max-w-xl mx-auto bg-white p-6 rounded-xl shadow-md">
+  <h2 class="text-2xl font-semibold mb-4">Add Document</h2>
+
+  <form id="addForm" class="space-y-5">
     
-    <label>Label (optional):</label>
-    <input type="text" id="label" placeholder="e.g., 'Work', 'Personal'"><br>
-    
-    <label>Expiry Date:</label>
-    <input type="date" id="expiry_date" required><br>
-    
-    <div id="advancedToggle" style="display: none;">
-      <button type="button" onclick="document.getElementById('advancedFields').style.display='block'; this.style.display='none';">Advanced Settings</button>
+    <!-- Document Type -->
+    <div class="space-y-1">
+      <label class="font-medium">Document Type *</label>
+      <select 
+        id="doc_type" 
+        required 
+        onchange="handleTypeChange()" 
+        class="w-full border rounded-lg px-3 py-2"
+      >
+        <option value="">Select document type</option>
+        <option value="Passport">Passport</option>
+        <option value="Visa">Visa</option>
+        <option value="License">License</option>
+        <option value="Permit">Permit</option>
+        <option value="Warranty">Warranty</option>
+        <option value="Insurance">Insurance</option>
+        <option value="Membership">Membership</option>
+        <option value="Certification">Certification</option>
+        <option value="Other">Other</option>
+      </select>
     </div>
-    
-    <div id="advancedFields" style="display: none;">
-      <label>Importance:</label>
-      <select id="importance">
-        <option value="">Auto-set by type</option>
-        <option value="2">Low</option>
-        <option value="3">Medium</option>
-        <option value="4">High</option>
-        <option value="5">Critical</option>
-      </select><br>
-      
-      <label>Lead Time Days:</label>
-      <input type="number" id="lead_time" min="1" placeholder="Auto-set by type"><br>
+
+    <!-- Document Name -->
+    <div class="space-y-1">
+      <label class="font-medium">Document Name *</label>
+      <input 
+        id="name"
+        type="text"
+        placeholder="e.g., F1 Visa, Driver License"
+        class="w-full border rounded-lg px-3 py-2"
+        required
+      />
     </div>
-    
-    <label>Notes (optional):</label>
-    <textarea id="notes" placeholder="Additional notes"></textarea><br>
-    
-    <button type="submit">Add Document</button>
+
+    <!-- Label -->
+    <div class="space-y-1">
+      <label class="font-medium">Label (optional)</label>
+      <input 
+        id="label"
+        type="text"
+        placeholder='e.g., "Work", "Personal"'
+        class="w-full border rounded-lg px-3 py-2"
+      />
+    </div>
+
+    <!-- Expiry date + lead time -->
+    <div class="grid grid-cols-2 gap-4">
+      <div class="space-y-1">
+        <label class="font-medium">Expiry Date *</label>
+        <input 
+          id="expiry_date"
+          type="date"
+          class="w-full border rounded-lg px-3 py-2"
+          required
+        />
+      </div>
+
+      <div class="space-y-1">
+        <label class="font-medium">Lead Time (days) *</label>
+        <input 
+          id="lead_time"
+          type="number"
+          class="w-full border rounded-lg px-3 py-2"
+          placeholder="90"
+          required
+        />
+      </div>
+    </div>
+
+    <!-- Importance -->
+    <div class="space-y-1">
+      <label class="font-medium">Importance *</label>
+      <select 
+        id="importance"
+        required
+        class="w-full border rounded-lg px-3 py-2"
+      >
+        <option value="">Select importance</option>
+        <option value="Low">Low</option>
+        <option value="Medium">Medium</option>
+        <option value="High">High</option>
+        <option value="Critical">Critical</option>
+      </select>
+    </div>
+
+    <!-- Notes -->
+    <div class="space-y-1">
+      <label class="font-medium">Notes (optional)</label>
+      <textarea 
+        id="notes"
+        rows="3"
+        placeholder="Additional notes..."
+        class="w-full border rounded-lg px-3 py-2"
+      ></textarea>
+    </div>
+
+    <!-- Buttons -->
+    <div class="flex gap-3 pt-3">
+      <button 
+        type="submit"
+        class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded-lg"
+      >
+        Add Document
+      </button>
+
+      <button 
+        type="button"
+        onclick="resetForm()"
+        class="flex-1 border border-gray-400 text-gray-700 py-2 rounded-lg"
+      >
+        Cancel
+      </button>
+    </div>
+
   </form>
+
+</div>
+
 
   <h3>Documents</h3>
   <button onclick="loadDocuments()">Refresh List</button>
