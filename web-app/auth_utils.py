@@ -1,34 +1,29 @@
 from __future__ import annotations
 
-from functools import wraps
 from typing import Optional
-
 from bson import ObjectId
-from flask import jsonify, session, g
+from flask_login import UserMixin
 
 
-def get_current_user_id() -> Optional[ObjectId]:
-    """Return the logged-in user's ObjectId, or None if not logged in/invalid."""
-    raw = session.get("user_id")
-    if not raw:
-        return None
-    try:
-        return ObjectId(str(raw))
-    except Exception:
-        return None
+class User(UserMixin):
+    def __init__(self, user_id: str, email: str):
+        self.id = user_id
+        self.email = email
 
+    @staticmethod
+    def get(user_id: str):
+        from main import get_db
 
-def login_required(fn):
-    """Require a valid logged-in user and attach g.user_id (ObjectId)."""
+        if not user_id:
+            return None
+        try:
+            oid = ObjectId(user_id)
+        except Exception:
+            return None
 
-    @wraps(fn)
-    def wrapper(*args, **kwargs):
-        uid = get_current_user_id()
-        if not uid:
-            # Clear bad/stale session value if present
-            session.pop("user_id", None)
-            return jsonify({"error": "auth_required"}), 401
-        g.user_id = uid
-        return fn(*args, **kwargs)
+        db = get_db()
+        user_data = db.users.find_one({"_id": oid})
+        if not user_data:
+            return None
 
-    return wrapper
+        return User(user_id=str(user_data["_id"]), email=user_data["email"])
