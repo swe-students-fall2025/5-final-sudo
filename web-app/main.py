@@ -3,6 +3,7 @@ import os
 
 from flask import Flask, render_template
 from pymongo import MongoClient
+from flask_login import LoginManager
 
 from routers.health import bp as health_bp
 from routers.documents import bp as documents_bp
@@ -39,6 +40,16 @@ def create_app() -> Flask:
     app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "dev-change-me")
     app.config["SESSION_COOKIE_HTTPONLY"] = True
     app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+
+    # init Flask-Login
+    login_manager = LoginManager()
+    login_manager.init_app(app)
+
+    from auth_utils import User
+
+    @login_manager.user_loader
+    def load_user(user_id):
+        return User.get(user_id)
 
     # Register blueprints
     app.register_blueprint(health_bp)
