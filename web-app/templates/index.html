@@ -1,10 +1,33 @@
-{% extends "base.html" %}
+{% extends "base.html" %} {% block content %}
+<!-- cant see if not logged in -->
+<div id="authPanel">
+  <div id="loginStuff">
+    <h3>Login</h3>
+    <form id="loginForm">
+       <label>Email: </label> <br>
+       <input type="email" id="loginEmail" required><br><br>
+       <label>Password: </label><br>
+       <input type="password" id="loginPassword" required><br><br>
+       <button type="submit">Login</button>
+    </form>
+  </div>
 
-{% block content %}
-  <h2>Document Tracker</h2>
+  <div id="registerStuff">
+    <h3>Register</h3>
+    <form id="registerForm">
+       <label>Email: </label> <br>
+       <input type="email" id="regEmail" required><br><br>
+       <label>Password: </label><br>
+       <input type="password" id="regPassword" required><br><br>
+       <button type="submit">Register</button>
+    </form>
+  </div>
+  </div>
+</div>
 
+<div id="dashboard" style="display:none;">
   <h3>Add Document</h3>
-  
+<button onclick="logout()">Logout</button>
 <div class="max-w-xl mx-auto bg-white p-6 rounded-xl shadow-md">
   <h2 class="text-2xl font-semibold mb-4">Add Document</h2>
 
@@ -78,7 +101,7 @@
         />
       </div>
     </div>
-
+ <div id="advancedFields" style="display: none">
     <!-- Importance -->
     <div class="space-y-1">
       <label class="font-medium">Importance *</label>
@@ -104,6 +127,7 @@
         placeholder="Additional notes..."
         class="w-full border rounded-lg px-3 py-2"
       ></textarea>
+    </div>
     </div>
 
     <!-- Buttons -->
@@ -132,128 +156,231 @@
   <h3>Documents</h3>
   <button onclick="loadDocuments()">Refresh List</button>
   <div id="documentList"></div>
+</div>
+<script>
 
-  <script>
-    function toggleAdvancedFields() {
-      const docType = document.getElementById('doc_type').value;
-      const advancedToggle = document.getElementById('advancedToggle');
-      const advancedFields = document.getElementById('advancedFields');
-      const advancedButton = advancedToggle.querySelector('button');
-      
-      if (docType === 'other') {
-        advancedFields.style.display = 'block';
-        advancedToggle.style.display = 'none';
-      } else {
-        advancedFields.style.display = 'none';
-        advancedToggle.style.display = 'block';
-        if (advancedButton) {
-          advancedButton.style.display = 'inline-block';
-        }
+  // auth for now
+  async function checkAuth(){
+      const respose = await fetch('/api/auth/me');
+      const data = await respose.json();
+      if (data.logged_in){
+        showDashboard();
+      }
+      else {
+        showAuth();
+      }
+  }
+
+  function showDashboard(){
+    document.getElementById('authPanel').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'block';
+    loadDocuments();
+  }
+
+  function showAuth(){
+    document.getElementById('authPanel').style.display = 'block';
+    document.getElementById('dashboard').style.display = 'none';
+    document.getElementById('documentList').innerHTML = ''; // clear it
+  }
+
+  async function logout(){
+    await fetch('/api/auth/logout', {method: 'POST'});
+    showAuth();
+  }
+
+  // login usr
+  document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('loginEmail').value;
+    const password = document.getElementById('loginPassword').value;
+
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({email, password})
+    })
+
+    if (res.ok){
+      document.getElementById('loginForm').reset();
+      showDashboard();
+    }
+    else {
+      alert('Account not found please register first')
+      const data = await res.json();
+      console.log("login failed error", data.error)
+    }
+  })
+
+  // register user
+  document.getElementById('registerForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('regEmail').value;
+    const password = document.getElementById('regPassword').value;
+
+    const res = await fetch('/api/auth/register', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({email, password})
+    })
+
+    if (res.ok){
+      alert('YAY!! You now have an account and you are logged in.')
+      document.getElementById('registerForm').reset();
+      showDashboard();
+    }
+    else {
+      const data = await res.json();
+      alert("registration failed error "+ data.error)
+    }
+  })
+  
+  function toggleAdvancedFields() {
+    const docType = document.getElementById("doc_type").value;
+    const advancedToggle = document.getElementById("advancedToggle");
+    const advancedFields = document.getElementById("advancedFields");
+    const advancedButton = advancedToggle.querySelector("button");
+
+    if (docType === "other") {
+      advancedFields.style.display = "block";
+      advancedToggle.style.display = "none";
+    } else {
+      advancedFields.style.display = "none";
+      advancedToggle.style.display = "block";
+      if (advancedButton) {
+        advancedButton.style.display = "inline-block";
       }
     }
+  }
 
-    function getRiskColor(risk) {
-      const colors = {
-        'CRITICAL': '#ff0000',
-        'HIGH': '#ff6600',
-        'MEDIUM': '#ffaa00',
-        'LOW': '#00aa00'
-      };
-      return colors[risk] || '#666';
+  function getRiskColor(risk) {
+    const colors = {
+      CRITICAL: "#ff0000",
+      HIGH: "#ff6600",
+      MEDIUM: "#ffaa00",
+      LOW: "#00aa00",
+    };
+    return colors[risk] || "#666";
+  }
+
+  function getImportanceLabel(importance) {
+    const labels = {
+      2: "Low",
+      3: "Medium",
+      4: "High",
+      5: "Critical",
+    };
+    return labels[importance] || importance;
+  }
+
+  async function deleteDocument(id) {
+    if (!confirm("Delete this document?")) return;
+
+    const response = await fetch(`/api/documents/${id}`, {
+      method: "DELETE",
+    });
+
+    if (response.ok) {
+      loadDocuments();
+    } else {
+      alert("Error deleting document");
     }
-    
-    function getImportanceLabel(importance) {
-      const labels = {
-        2: 'Low',
-        3: 'Medium',
-        4: 'High',
-        5: 'Critical'
-      };
-      return labels[importance] || importance;
+  }
+
+  async function loadDocuments() {
+    const response = await fetch("/api/documents");
+    const docs = await response.json();
+    const list = document.getElementById("documentList");
+
+    if (docs.length === 0) {
+      list.innerHTML = "<p>No documents yet</p>";
+      return;
     }
 
-    async function deleteDocument(id) {
-      if (!confirm('Delete this document?')) return;
-      
-      const response = await fetch(`/api/documents/${id}`, {
-        method: 'DELETE'
-      });
-
-      if (response.ok) {
-        loadDocuments();
-      } else {
-        alert('Error deleting document');
-      }
-    }
-
-    async function loadDocuments() {
-      const response = await fetch('/api/documents');
-      const docs = await response.json();
-      const list = document.getElementById('documentList');
-      
-      if (docs.length === 0) {
-        list.innerHTML = '<p>No documents yet</p>';
-        return;
-      }
-
-      list.innerHTML = '<div>' + docs.map(doc => {
-        const riskStyle = doc.last_risk ? `color: ${getRiskColor(doc.last_risk)}; font-weight: bold;` : '';
-        return `
+    list.innerHTML =
+      "<div>" +
+      docs
+        .map((doc) => {
+          const riskStyle = doc.last_risk
+            ? `color: ${getRiskColor(doc.last_risk)}; font-weight: bold;`
+            : "";
+          return `
           <div style="border: 1px solid #ccc; padding: 10px; margin: 10px 0; border-radius: 5px;">
             <strong style="font-size: 1.2em;">${doc.name}</strong><br>
             <strong>Type:</strong> ${doc.doc_type || doc.category}<br>
             <strong>Expires:</strong> ${doc.expiry_date}<br>
-            <strong>Importance:</strong> ${getImportanceLabel(doc.importance)} | <strong>Lead Time:</strong> ${doc.renewal_lead_time_days} days<br>
-            ${doc.last_risk ? `<strong style="${riskStyle}">Risk Level: ${doc.last_risk}</strong><br>` : ''}
-            ${doc.last_days_until !== undefined ? `<strong>Days Until Expiry:</strong> ${doc.last_days_until}<br>` : ''}
-            ${doc.last_checked_at ? `<em>Last checked: ${new Date(doc.last_checked_at).toLocaleString()}</em><br>` : ''}
-            ${doc.notes ? `<strong>Notes:</strong> ${doc.notes}<br>` : ''}
-            <button onclick="deleteDocument('${doc.id}')" style="margin-top: 5px; background: #ff4444; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 3px;">Delete</button>
+            <strong>Importance:</strong> ${getImportanceLabel(
+              doc.importance
+            )} | <strong>Lead Time:</strong> ${
+            doc.renewal_lead_time_days
+          } days<br>
+            ${
+              doc.last_risk
+                ? `<strong style="${riskStyle}">Risk Level: ${doc.last_risk}</strong><br>`
+                : ""
+            }
+            ${
+              doc.last_days_until !== undefined
+                ? `<strong>Days Until Expiry:</strong> ${doc.last_days_until}<br>`
+                : ""
+            }
+            ${
+              doc.last_checked_at
+                ? `<em>Last checked: ${new Date(
+                    doc.last_checked_at
+                  ).toLocaleString()}</em><br>`
+                : ""
+            }
+            ${doc.notes ? `<strong>Notes:</strong> ${doc.notes}<br>` : ""}
+            <button onclick="deleteDocument('${
+              doc.id
+            }')" style="margin-top: 5px; background: #ff4444; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 3px;">Delete</button>
           </div>
         `;
-      }).join('') + '</div>';
+        })
+        .join("") +
+      "</div>";
+  }
+
+  document.getElementById("addForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const docType = document.getElementById("doc_type").value;
+    const advancedVisible =
+      document.getElementById("advancedFields").style.display === "block";
+
+    const doc = {
+      doc_type: docType,
+      label: document.getElementById("label").value || null,
+      expiry_date: document.getElementById("expiry_date").value,
+      notes: document.getElementById("notes").value || null,
+    };
+
+    // Only include importance and lead_time if advanced fields are visible
+    if (advancedVisible) {
+      const importance = document.getElementById("importance").value;
+      const leadTime = document.getElementById("lead_time").value;
+      if (importance) doc.importance = parseInt(importance);
+      if (leadTime) doc.renewal_lead_time_days = parseInt(leadTime);
     }
 
-    document.getElementById('addForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      
-      const docType = document.getElementById('doc_type').value;
-      const advancedVisible = document.getElementById('advancedFields').style.display === 'block';
-      
-      const doc = {
-        doc_type: docType,
-        label: document.getElementById('label').value || null,
-        expiry_date: document.getElementById('expiry_date').value,
-        notes: document.getElementById('notes').value || null
-      };
-      
-      // Only include importance and lead_time if advanced fields are visible
-      if (advancedVisible) {
-        const importance = document.getElementById('importance').value;
-        const leadTime = document.getElementById('lead_time').value;
-        if (importance) doc.importance = parseInt(importance);
-        if (leadTime) doc.renewal_lead_time_days = parseInt(leadTime);
-      }
-
-      const response = await fetch('/api/documents', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(doc)
-      });
-
-      if (response.ok) {
-        alert('Document added!');
-        document.getElementById('addForm').reset();
-        loadDocuments();
-      } else {
-        alert('Error adding document');
-      }
+    const response = await fetch("/api/documents", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(doc),
     });
 
-    // Initialize advanced fields visibility on page load
-    toggleAdvancedFields();
-    
-    // Load documents on page load
-    loadDocuments();
-  </script>
+    if (response.ok) {
+      alert("Document added!");
+      document.getElementById("addForm").reset();
+      loadDocuments();
+    } else {
+      alert("Error adding document");
+    }
+  });
+
+  // Initialize advanced fields visibility on page load
+  toggleAdvancedFields();
+  checkAuth(); // check login on load
+
+</script>
 {% endblock %}

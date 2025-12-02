@@ -1,5 +1,6 @@
 flask
 pymongo
+flask-login
 
 pytest
 pytest-cov
