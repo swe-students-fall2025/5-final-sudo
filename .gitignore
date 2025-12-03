@@ -147,3 +147,27 @@ dmypy.json
 
 # Cython debug symbols
 cython_debug/
+
+
+# Node modules
+node_modules/
+tailwindcss
+dist/
+build/
+
+# npm / yarn debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+
+# Tailwind / PostCSS output
+*.map
+static/css/output.css
+static/css/*.map
+static/js/*.map
+
+# Autoprefixer & browserlist cache
+.browserslistrc
+.autoprefixer
+.update-browserslist-db/

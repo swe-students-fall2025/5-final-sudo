@@ -1,316 +1,150 @@
-{% extends "base.html" %} {% block content %}
-<!-- cant see if not logged in -->
-<div id="authPanel">
-  <div id="loginStuff">
-    <h3>Login</h3>
-    <form id="loginForm">
-       <label>Email: </label> <br>
-       <input type="email" id="loginEmail" required><br><br>
-       <label>Password: </label><br>
-       <input type="password" id="loginPassword" required><br><br>
-       <button type="submit">Login</button>
-    </form>
-  </div>
+{% extends "base.html" %}
+{% block content %} 
 
-  <div id="registerStuff">
-    <h3>Register</h3>
-    <form id="registerForm">
-       <label>Email: </label> <br>
-       <input type="email" id="regEmail" required><br><br>
-       <label>Password: </label><br>
-       <input type="password" id="regPassword" required><br><br>
-       <button type="submit">Register</button>
-    </form>
-  </div>
-  </div>
-</div>
+<div id="authPanel"
+     class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-4">
 
-<div id="dashboard" style="display:none;">
-  <h3>Add Document</h3>
-  <button onclick="logout()">Logout</button>
-  <form id="addForm">
-    <label>Document Type:</label>
-    <select id="doc_type" required onchange="toggleAdvancedFields()">
-      <option value="passport">Passport</option>
-      <option value="visa">Visa</option>
-      <option value="driver_license">Driver License</option>
-      <option value="permit">Permit</option>
-      <option value="car_registration">Car Registration</option>
-      <option value="insurance">Insurance</option>
-      <option value="lease">Lease</option>
-      <option value="subscription">Subscription</option>
-      <option value="warranty">Warranty</option>
-      <option value="other">Other</option></select
-    ><br />
+  <div class="w-full max-w-md">
 
-    <label>Label (optional):</label>
-    <input type="text" id="label" placeholder="e.g., 'Work', 'Personal'" /><br />
+    <!-- HEADER -->
+    <div class="text-center mb-8">
+      <div class="flex items-center justify-center gap-3 mb-4">
+        <div class="w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl 
+                    flex items-center justify-center text-white shadow-lg shadow-blue-500/30">
+          <svg class="w-7 h-7" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 
+                     2 0 0 0 2 2h12a2 2 0 0 
+                     0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+            <line x1="10" y1="9" x2="8" y2="9"></line>
+          </svg>
+        </div>
+        <h1 class="text-gray-900 text-2xl font-semibold">DocKeeper</h1>
+      </div>
 
-    <label>Expiry Date:</label>
-    <input type="date" id="expiry_date" required /><br />
-
-    <div id="advancedToggle" style="display: none">
-      <button
-        type="button"
-        onclick="document.getElementById('advancedFields').style.display='block'; this.style.display='none';"
-      >
-        Advanced Settings
-      </button>
+      <p class="text-gray-600">
+        Track passports, permits, warranties, and anything with an expiry date.
+      </p>
     </div>
 
-    <div id="advancedFields" style="display: none">
-      <label>Importance:</label>
-      <select id="importance">
-        <option value="">Auto-set by type</option>
-        <option value="2">Low</option>
-        <option value="3">Medium</option>
-        <option value="4">High</option>
-        <option value="5">Critical</option></select
-      ><br />
+    <!-- CARD -->
+    <div class="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
 
-      <label>Lead Time Days:</label>
-      <input
-        type="number"
-        id="lead_time"
-        min="1"
-        placeholder="Auto-set by type"
-      /><br />
-    </div>
+      <!-- TABS (must wrap both buttons in a flex or grid) -->
+      <div class="grid grid-cols-2 mb-6 border-b border-gray-300">
+        
+        <!-- ACTIVE by default -->
+        <button 
+          id="tabLogin"
+          onclick="switchTab('login')"
+          class="py-2 text-center font-medium border-b-2 border-blue-600 text-blue-600"
+        >
+          Login
+        </button>
 
-    <label>Notes (optional):</label>
-    <textarea id="notes" placeholder="Additional notes"></textarea><br />
+        <!-- INACTIVE by default -->
+        <button 
+          id="tabRegister"
+          onclick="switchTab('register')"
+          class="py-2 text-center font-medium border-b-2 border-transparent text-gray-500"
+        >
+          Register
+        </button>
 
-    <button type="submit">Add Document</button>
-  </form>
+      </div>
 
-  <h3>Documents</h3>
-  <button onclick="loadDocuments()">Refresh List</button>
-  <div id="documentList"></div>
-</div>
-<script>
-
-  // auth for now
-  async function checkAuth(){
-      const respose = await fetch('/api/auth/me');
-      const data = await respose.json();
-      if (data.logged_in){
-        showDashboard();
-      }
-      else {
-        showAuth();
-      }
-  }
-
-  function showDashboard(){
-    document.getElementById('authPanel').style.display = 'none';
-    document.getElementById('dashboard').style.display = 'block';
-    loadDocuments();
-  }
-
-  function showAuth(){
-    document.getElementById('authPanel').style.display = 'block';
-    document.getElementById('dashboard').style.display = 'none';
-    document.getElementById('documentList').innerHTML = ''; // clear it
-  }
-
-  async function logout(){
-    await fetch('/api/auth/logout', {method: 'POST'});
-    showAuth();
-  }
-
-  // login usr
-  document.getElementById('loginForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const email = document.getElementById('loginEmail').value;
-    const password = document.getElementById('loginPassword').value;
-
-    const res = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({email, password})
-    })
-
-    if (res.ok){
-      document.getElementById('loginForm').reset();
-      showDashboard();
-    }
-    else {
-      alert('Account not found please register first')
-      const data = await res.json();
-      console.log("login failed error", data.error)
-    }
-  })
-
-  // register user
-  document.getElementById('registerForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const email = document.getElementById('regEmail').value;
-    const password = document.getElementById('regPassword').value;
-
-    const res = await fetch('/api/auth/register', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({email, password})
-    })
-
-    if (res.ok){
-      alert('YAY!! You now have an account and you are logged in.')
-      document.getElementById('registerForm').reset();
-      showDashboard();
-    }
-    else {
-      const data = await res.json();
-      alert("registration failed error "+ data.error)
-    }
-  })
-  
-  function toggleAdvancedFields() {
-    const docType = document.getElementById("doc_type").value;
-    const advancedToggle = document.getElementById("advancedToggle");
-    const advancedFields = document.getElementById("advancedFields");
-    const advancedButton = advancedToggle.querySelector("button");
-
-    if (docType === "other") {
-      advancedFields.style.display = "block";
-      advancedToggle.style.display = "none";
-    } else {
-      advancedFields.style.display = "none";
-      advancedToggle.style.display = "block";
-      if (advancedButton) {
-        advancedButton.style.display = "inline-block";
-      }
-    }
-  }
-
-  function getRiskColor(risk) {
-    const colors = {
-      CRITICAL: "#ff0000",
-      HIGH: "#ff6600",
-      MEDIUM: "#ffaa00",
-      LOW: "#00aa00",
-    };
-    return colors[risk] || "#666";
-  }
-
-  function getImportanceLabel(importance) {
-    const labels = {
-      2: "Low",
-      3: "Medium",
-      4: "High",
-      5: "Critical",
-    };
-    return labels[importance] || importance;
-  }
-
-  async function deleteDocument(id) {
-    if (!confirm("Delete this document?")) return;
-
-    const response = await fetch(`/api/documents/${id}`, {
-      method: "DELETE",
-    });
-
-    if (response.ok) {
-      loadDocuments();
-    } else {
-      alert("Error deleting document");
-    }
-  }
-
-  async function loadDocuments() {
-    const response = await fetch("/api/documents");
-    const docs = await response.json();
-    const list = document.getElementById("documentList");
-
-    if (docs.length === 0) {
-      list.innerHTML = "<p>No documents yet</p>";
-      return;
-    }
-
-    list.innerHTML =
-      "<div>" +
-      docs
-        .map((doc) => {
-          const riskStyle = doc.last_risk
-            ? `color: ${getRiskColor(doc.last_risk)}; font-weight: bold;`
-            : "";
-          return `
-          <div style="border: 1px solid #ccc; padding: 10px; margin: 10px 0; border-radius: 5px;">
-            <strong style="font-size: 1.2em;">${doc.name}</strong><br>
-            <strong>Type:</strong> ${doc.doc_type || doc.category}<br>
-            <strong>Expires:</strong> ${doc.expiry_date}<br>
-            <strong>Importance:</strong> ${getImportanceLabel(
-              doc.importance
-            )} | <strong>Lead Time:</strong> ${
-            doc.renewal_lead_time_days
-          } days<br>
-            ${
-              doc.last_risk
-                ? `<strong style="${riskStyle}">Risk Level: ${doc.last_risk}</strong><br>`
-                : ""
-            }
-            ${
-              doc.last_days_until !== undefined
-                ? `<strong>Days Until Expiry:</strong> ${doc.last_days_until}<br>`
-                : ""
-            }
-            ${
-              doc.last_checked_at
-                ? `<em>Last checked: ${new Date(
-                    doc.last_checked_at
-                  ).toLocaleString()}</em><br>`
-                : ""
-            }
-            ${doc.notes ? `<strong>Notes:</strong> ${doc.notes}<br>` : ""}
-            <button onclick="deleteDocument('${
-              doc.id
-            }')" style="margin-top: 5px; background: #ff4444; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 3px;">Delete</button>
+      <!-- LOGIN FORM -->
+      <div id="loginTabContent">
+        <form id="loginForm" class="space-y-4">
+          <div class="space-y-1">
+            <label for="loginEmail">Email:</label>
+            <input id="loginEmail" type="email"
+                   placeholder="Enter your email"
+                   class="w-full bg-gray-100 rounded-lg px-3 py-2" required>
           </div>
-        `;
-        })
-        .join("") +
-      "</div>";
+
+          <div class="space-y-1">
+            <label for="loginPassword">Password:</label>
+            <input id="loginPassword" type="password"
+                   placeholder="Enter your password"
+                   class="w-full bg-gray-100 rounded-lg px-3 py-2" required>
+          </div>
+
+          <button type="submit"
+                  class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg mt-4">
+            Login
+          </button>
+        </form>
+      </div>
+
+      <!-- REGISTER FORM -->
+      <div id="registerTabContent" class="hidden">
+        <form id="registerForm" class="space-y-4">
+          <div class="space-y-1">
+            <label>Email:</label>
+            <input id="regEmail" type="email"
+                   placeholder="Enter your email"
+                   class="w-full bg-dark-100 rounded-lg px-3 py-2" required>
+          </div>
+
+          <div class="space-y-1">
+            <label>Password:</label>
+            <input id="regPassword" type="password"
+                   placeholder="Create a password"
+                   class="w-full bg-dark-100 rounded-lg px-3 py-2" required>
+          </div>
+
+          <button type="submit"
+                  class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg mt-4">
+            Register
+          </button>
+        </form>
+      </div>
+
+    </div>
+
+    <p class="text-center text-sm text-gray-500 mt-6">
+      Demo Mode: Enter any email and password to continue
+    </p>
+
+  </div>
+</div> 
+
+<!-- DASHBOARD -->
+<div id="dashboard" class="hidden">
+  {% include "components/dashboard.html" %}
+</div>
+
+<script>
+function switchTab(tab) {
+  const loginTab = document.getElementById("loginTabContent");
+  const registerTab = document.getElementById("registerTabContent");
+  const btnLogin = document.getElementById("tabLogin");
+  const btnRegister = document.getElementById("tabRegister");
+
+  if (tab === "login") {
+    loginTab.classList.remove("hidden");
+    registerTab.classList.add("hidden");
+
+    btnLogin.classList.add("border-blue-600", "text-blue-600");
+    btnLogin.classList.remove("border-transparent", "text-gray-500");
+
+    btnRegister.classList.add("border-transparent", "text-gray-500");
+    btnRegister.classList.remove("border-blue-600", "text-blue-600");
+
+  } else {
+    loginTab.classList.add("hidden");
+    registerTab.classList.remove("hidden");
+
+    btnRegister.classList.add("border-blue-600", "text-blue-600");
+    btnRegister.classList.remove("border-transparent", "text-gray-500");
+
+    btnLogin.classList.add("border-transparent", "text-gray-500");
+    btnLogin.classList.remove("border-blue-600", "text-blue-600");
   }
-
-  document.getElementById("addForm").addEventListener("submit", async (e) => {
-    e.preventDefault();
-
-    const docType = document.getElementById("doc_type").value;
-    const advancedVisible =
-      document.getElementById("advancedFields").style.display === "block";
-
-    const doc = {
-      doc_type: docType,
-      label: document.getElementById("label").value || null,
-      expiry_date: document.getElementById("expiry_date").value,
-      notes: document.getElementById("notes").value || null,
-    };
-
-    // Only include importance and lead_time if advanced fields are visible
-    if (advancedVisible) {
-      const importance = document.getElementById("importance").value;
-      const leadTime = document.getElementById("lead_time").value;
-      if (importance) doc.importance = parseInt(importance);
-      if (leadTime) doc.renewal_lead_time_days = parseInt(leadTime);
-    }
-
-    const response = await fetch("/api/documents", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(doc),
-    });
-
-    if (response.ok) {
-      alert("Document added!");
-      document.getElementById("addForm").reset();
-      loadDocuments();
-    } else {
-      alert("Error adding document");
-    }
-  });
-
-  // Initialize advanced fields visibility on page load
-  toggleAdvancedFields();
-  checkAuth(); // check login on load
-
+}
 </script>
+
 {% endblock %}
