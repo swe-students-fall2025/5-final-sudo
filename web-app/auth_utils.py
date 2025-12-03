@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Optional
+# from typing import Optional
 from bson import ObjectId
 from flask_login import UserMixin
 
