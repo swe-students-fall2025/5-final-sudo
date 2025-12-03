@@ -164,7 +164,7 @@ def delete_document(doc_id):
 @login_required
 def export_calendar():
     """Export all user documents as an iCalendar (.ics) file.
-    
+
     Creates two events per document:
     1. Expiry date event (required)
     2. Reminder start date event (expiry_date - renewal_lead_time_days, optional)
@@ -207,7 +207,9 @@ def export_calendar():
             # Event 1: Expiry Date (required)
             expiry_event = Event()
             expiry_event.add("summary", f"{name} - Expires")
-            expiry_event.add("description", f"Document: {name}\nType: {doc_type}\n{notes}".strip())
+            expiry_event.add(
+                "description", f"Document: {name}\nType: {doc_type}\n{notes}".strip()
+            )
             expiry_event.add("dtstart", expiry_date.date())
             expiry_event.add("dtend", (expiry_date + timedelta(days=1)).date())
             expiry_event.add("dtstamp", datetime.utcnow())
@@ -229,21 +231,31 @@ def export_calendar():
                 if reminder_date > datetime.now():
                     reminder_event = Event()
                     reminder_event.add("summary", f"{name} - Renewal Reminder")
-                    reminder_event.add(
-                        "description",
-                        f"Time to renew: {name}\nType: {doc_type}\nExpires: {expiry_date_str}\n{notes}".strip()
-                    )
+                    desc = (
+                        f"Time to renew: {name}\nType: {doc_type}\n"
+                        f"Expires: {expiry_date_str}\n{notes}"
+                    ).strip()
+                    reminder_event.add("description", desc)
                     reminder_event.add("dtstart", reminder_date.date())
-                    reminder_event.add("dtend", (reminder_date + timedelta(days=1)).date())
+                    reminder_event.add(
+                        "dtend", (reminder_date + timedelta(days=1)).date()
+                    )
                     reminder_event.add("dtstamp", datetime.utcnow())
-                    reminder_event.add("uid", f"dockeeper-reminder-{doc.get('_id')}@dockeeper")
+                    reminder_event.add(
+                        "uid", f"dockeeper-reminder-{doc.get('_id')}@dockeeper"
+                    )
                     reminder_event.add("status", "CONFIRMED")
                     reminder_event.add("transp", "OPAQUE")
                     # Set alarm for reminder
                     reminder_alarm = Alarm()
                     reminder_alarm.add("action", "DISPLAY")
-                    reminder_alarm.add("description", f"Reminder: {name} expires in {lead_time_days} days")
-                    reminder_alarm.add("trigger", timedelta(hours=-2))  # 2 hours before reminder date
+                    reminder_alarm.add(
+                        "description",
+                        f"Reminder: {name} expires in {lead_time_days} days",
+                    )
+                    reminder_alarm.add(
+                        "trigger", timedelta(hours=-2)
+                    )  # 2 hours before reminder date
                     reminder_event.add_component(reminder_alarm)
                     cal.add_component(reminder_event)
 
@@ -253,5 +265,7 @@ def export_calendar():
 
     # Return as .ics file
     response = Response(cal.to_ical(), mimetype="text/calendar")
-    response.headers["Content-Disposition"] = "attachment; filename=dockeeper-calendar.ics"
+    response.headers["Content-Disposition"] = (
+        "attachment; filename=dockeeper-calendar.ics"
+    )
     return response
