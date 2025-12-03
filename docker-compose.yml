@@ -16,8 +16,8 @@ services:
 
   web-app:
     build:
-      context: ./web-app
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: web-app/Dockerfile
     container_name: dockeeper-web-app
     ports:
       - "8000:8000"
