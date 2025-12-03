@@ -303,6 +303,12 @@ function closeModal() {
     document.getElementById("docModalBackdrop")?.classList.add("hidden");
 }
 
+function downloadCalendar() {
+    // Download the calendar file
+    window.location.href = "/api/documents/calendar.ics";
+}
+window.downloadCalendar = downloadCalendar;
+
 // ======== EVENT WIRING ========
 document.addEventListener("DOMContentLoaded", () => {
     // login

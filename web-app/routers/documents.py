@@ -1,7 +1,9 @@
 # web-app/routers/documents.py
-from flask import Blueprint, jsonify, request
+from datetime import datetime, timedelta
+from flask import Blueprint, jsonify, request, Response
 from bson import ObjectId
 from flask_login import login_required, current_user
+from icalendar import Calendar, Event, Alarm
 
 bp = Blueprint("documents", __name__, url_prefix="/api/documents")
 
@@ -156,3 +158,100 @@ def delete_document(doc_id):
         return jsonify({"message": "Document deleted"}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 400
+
+
+@bp.get("/calendar.ics")
+@login_required
+def export_calendar():
+    """Export all user documents as an iCalendar (.ics) file.
+    
+    Creates two events per document:
+    1. Expiry date event (required)
+    2. Reminder start date event (expiry_date - renewal_lead_time_days, optional)
+    """
+    from main import get_db
+
+    db = get_db()
+    uid = ObjectId(current_user.id)
+
+    # Fetch all documents for the user
+    docs = list(db.documents.find({"user_id": uid}).sort("expiry_date", 1))
+
+    # Create iCalendar
+    cal = Calendar()
+    cal.add("prodid", "-//DocKeeper//Document Expiry Tracker//EN")
+    cal.add("version", "2.0")
+    cal.add("calscale", "GREGORIAN")
+    cal.add("method", "PUBLISH")
+    cal.add("X-WR-CALNAME", "DocKeeper Document Expiry Calendar")
+    cal.add("X-WR-CALDESC", "Document expiry dates and reminders from DocKeeper")
+
+    for doc in docs:
+        expiry_date_str = doc.get("expiry_date", "")
+        if not expiry_date_str:
+            continue
+
+        try:
+            # Parse expiry date (assuming ISO format YYYY-MM-DD)
+            expiry_date = datetime.strptime(expiry_date_str, "%Y-%m-%d")
+        except (ValueError, TypeError):
+            # Skip documents with invalid dates
+            continue
+
+        try:
+            name = doc.get("name", "Document")
+            doc_type = doc.get("doc_type", "document")
+            lead_time_days = doc.get("renewal_lead_time_days", 30)
+            notes = doc.get("notes", "")
+
+            # Event 1: Expiry Date (required)
+            expiry_event = Event()
+            expiry_event.add("summary", f"{name} - Expires")
+            expiry_event.add("description", f"Document: {name}\nType: {doc_type}\n{notes}".strip())
+            expiry_event.add("dtstart", expiry_date.date())
+            expiry_event.add("dtend", (expiry_date + timedelta(days=1)).date())
+            expiry_event.add("dtstamp", datetime.utcnow())
+            expiry_event.add("uid", f"dockeeper-expiry-{doc.get('_id')}@dockeeper")
+            expiry_event.add("status", "CONFIRMED")
+            expiry_event.add("transp", "OPAQUE")
+            # Set alarm/reminder for expiry date
+            alarm = Alarm()
+            alarm.add("action", "DISPLAY")
+            alarm.add("description", f"{name} expires today!")
+            alarm.add("trigger", timedelta(hours=-24))  # 24 hours before
+            expiry_event.add_component(alarm)
+            cal.add_component(expiry_event)
+
+            # Event 2: Reminder Start Date (optional, if lead_time_days > 0)
+            if lead_time_days > 0:
+                reminder_date = expiry_date - timedelta(days=lead_time_days)
+                # Only add reminder event if it's in the future
+                if reminder_date > datetime.now():
+                    reminder_event = Event()
+                    reminder_event.add("summary", f"{name} - Renewal Reminder")
+                    reminder_event.add(
+                        "description",
+                        f"Time to renew: {name}\nType: {doc_type}\nExpires: {expiry_date_str}\n{notes}".strip()
+                    )
+                    reminder_event.add("dtstart", reminder_date.date())
+                    reminder_event.add("dtend", (reminder_date + timedelta(days=1)).date())
+                    reminder_event.add("dtstamp", datetime.utcnow())
+                    reminder_event.add("uid", f"dockeeper-reminder-{doc.get('_id')}@dockeeper")
+                    reminder_event.add("status", "CONFIRMED")
+                    reminder_event.add("transp", "OPAQUE")
+                    # Set alarm for reminder
+                    reminder_alarm = Alarm()
+                    reminder_alarm.add("action", "DISPLAY")
+                    reminder_alarm.add("description", f"Reminder: {name} expires in {lead_time_days} days")
+                    reminder_alarm.add("trigger", timedelta(hours=-2))  # 2 hours before reminder date
+                    reminder_event.add_component(reminder_alarm)
+                    cal.add_component(reminder_event)
+
+        except Exception:
+            # Skip documents that cause errors
+            continue
+
+    # Return as .ics file
+    response = Response(cal.to_ical(), mimetype="text/calendar")
+    response.headers["Content-Disposition"] = "attachment; filename=dockeeper-calendar.ics"
+    return response
