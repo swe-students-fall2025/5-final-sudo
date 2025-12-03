@@ -1,11 +1,43 @@
 # web-app/routers/documents.py
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from flask import Blueprint, jsonify, request, Response
 from bson import ObjectId
 from flask_login import login_required, current_user
 from icalendar import Calendar, Event, Alarm
 
 bp = Blueprint("documents", __name__, url_prefix="/api/documents")
+
+RISK_RANK = {"CRITICAL": 4, "HIGH": 3, "MEDIUM": 2, "LOW": 1, "UNKNOWN": 0, None: 0}
+STATUS_RANK = {"EXPIRED": 3, "IN_WINDOW": 2, "SAFE": 1, "UNKNOWN": 0}
+
+
+def parse_yyyy_mm_dd(value: str) -> date | None:
+    if not value:
+        return None
+    s = str(value).strip()
+    if not s:
+        return None
+    # accept "YYYY-MM-DD" or "YYYY-MM-DDTHH:MM..."
+    try:
+        return date.fromisoformat(s[:10])
+    except Exception:
+        return None
+
+
+def compute_days_until(expiry_value: str) -> int | None:
+    expiry = parse_yyyy_mm_dd(expiry_value)
+    if not expiry:
+        return None
+    return (expiry - date.today()).days
+
+
+def compute_status(days_until: int, lead_time_days: int) -> str:
+    if days_until < 0:
+        return "EXPIRED"
+    if days_until <= lead_time_days:
+        return "IN_WINDOW"
+    return "SAFE"
+
 
 DOC_TEMPLATES = {
     "passport": {"category": "ID", "importance": 5, "lead_time": 180},
@@ -46,6 +78,12 @@ def _serialize_doc(doc):
         del doc["_id"]
     if "user_id" in doc and isinstance(doc["user_id"], ObjectId):
         doc["user_id"] = str(doc["user_id"])
+
+    # make datetimes JSON-friendly
+    for k, v in list(doc.items()):
+        if isinstance(v, (datetime, date)):
+            doc[k] = v.isoformat()
+
     return doc
 
 
@@ -81,11 +119,42 @@ def list_documents():
     from main import get_db
 
     db = get_db()
-
     uid = ObjectId(current_user.id)
 
-    docs = list(db.documents.find({"user_id": uid}).sort("expiry_date", 1))
-    return jsonify([_serialize_doc(doc) for doc in docs])
+    docs = list(db.documents.find({"user_id": uid}))
+
+    out = []
+    for d in docs:
+        lead = int(d.get("renewal_lead_time_days") or 0)
+
+        # prefer worker value if present, else compute quickly
+        days_until = d.get("last_days_until")
+        if days_until is None:
+            days_until = compute_days_until(d.get("expiry_date", ""))
+
+        if days_until is None:
+            status = "UNKNOWN"
+        else:
+            status = compute_status(int(days_until), lead)
+
+        risk = d.get("last_risk") or "UNKNOWN"
+
+        d["days_until"] = days_until
+        d["status"] = status
+        d["risk"] = risk
+
+        out.append(_serialize_doc(d))
+
+    # worst-first default ordering
+    def sort_key(doc):
+        risk_rank = RISK_RANK.get(doc.get("risk"), 0)
+        status_rank = STATUS_RANK.get(doc.get("status"), 0)
+        days = doc.get("days_until")
+        days_sort = days if isinstance(days, int) else 10**9
+        return (-risk_rank, -status_rank, days_sort)
+
+    out.sort(key=sort_key)
+    return jsonify(out)
 
 
 @bp.post("/")
