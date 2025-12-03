@@ -1,0 +1,163 @@
+<style>
+  summary::-webkit-details-marker {
+    display: none;
+  }
+</style>
+
+<!-- PAGE WRAPPER -->
+<div class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+
+  <!-- WHITE HEADER BLOCK -->
+  <header class="bg-white border-b border-gray-200">
+    <div class="max-w-7xl mx-auto px-6 py-10 pb-4">
+
+      <!-- TOP ROW: BRAND + ADD BUTTON -->
+      <div class="flex items-start justify-between mb-8">
+        
+        <!-- BRAND + TEXT + LOGOUT -->
+        <div>
+          <div class="flex items-center gap-3 mb-1">
+            <div class="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-blue-500/30">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2"
+                   viewBox="0 0 24 24">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 
+                        2 0 0 0 2 2h12a2 2 0 0 
+                        0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+                <line x1="10" y1="9" x2="8" y2="9"></line>
+              </svg>
+            </div>
+
+            <h1 class="text-2xl font-semibold text-gray-900">DocKeeper</h1>
+          </div>
+
+          <p class="text-gray-600 text-sm">
+            Smart document tracking with risk-based reminders
+          </p>
+
+          <button onclick="logout()"
+            class="gap-2 text-gray-500 hover:text-gray-700 hover:text-red-900 hover:rounded-lg px-4 py-1 hover:bg-red-100 mt-2 -ml-2">
+            Logout
+          </button>
+        </div>
+
+        <!-- ADD DOCUMENT BUTTON -->
+        <button onclick="openModal()"
+          class="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow">
+          + Add Document
+        </button>
+
+      </div>
+
+      <!-- STATS BADGES -->
+      <div class="flex gap-4 mb-8">
+
+        <div class="px-4 py-2 bg-white border rounded-lg shadow-sm">
+          <div class="flex items-center gap-2 text-sm">
+            <span class="text-gray-600">Total:</span>
+            <span id="statTotal" class="font-medium text-gray-900">0</span>
+          </div>
+        </div>
+
+        <div id="statExpiringBox"
+             class="px-4 py-2 bg-orange-50 border border-orange-200 rounded-lg shadow-sm hidden">
+          <div class="flex items-center gap-2 text-sm">
+            <span class="text-orange-700">⚠️ Action Needed:</span>
+            <span id="statExpiring" class="font-medium text-orange-900">0</span>
+          </div>
+        </div>
+
+        <div id="statCriticalBox"
+             class="px-4 py-2 bg-red-50 border border-red-200 rounded-lg shadow-sm hidden">
+          <div class="flex items-center gap-2 text-sm">
+            <span class="text-red-700">Critical:</span>
+            <span id="statCritical" class="font-medium text-red-900">0</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- SEARCH + FILTERS -->
+      <div class="flex flex-wrap gap-3 mb-4">
+
+        <!-- SEARCH BAR -->
+        <div class="relative flex-1 min-w-[260px]">
+          <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
+            fill="none" stroke="currentColor" stroke-width="2"
+            viewBox="0 0 24 24">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+
+          <input id="searchInput"
+            placeholder="Search documents..."
+            class="w-full bg-gray-100 rounded-xl pl-10 pr-3 py-2 text-sm border-none focus:ring-2 focus:ring-blue-500 transition" />
+        </div>
+
+        <!-- TYPE FILTER -->
+        <div class="relative">
+          <select id="filterType"
+            class="appearance-none bg-gray-100 rounded-xl pl-10 pr-8 py-2 text-sm border-none focus:ring-2 focus:ring-blue-500">
+            <option value="all">All Types</option>
+          </select>
+
+          <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500"
+            fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M3 4h18l-7 9v7l-4 2v-9L3 4z"></path>
+          </svg>
+
+          <svg class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
+            fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </div>
+
+        <!-- RISK FILTER -->
+        <div class="relative">
+          <select id="filterImportance"
+            class="appearance-none bg-gray-100 rounded-xl pl-10 pr-8 py-2 text-sm border-none focus:ring-2 focus:ring-blue-500">
+            <option value="all">All Risk Levels</option>
+            <option value="Critical">Critical</option>
+            <option value="High">High</option>
+            <option value="Medium">Medium</option>
+            <option value="Low">Low</option>
+          </select>
+
+          <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500"
+            fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M3 4h18l-7 9v7l-4 2v-9L3 4z"></path>
+          </svg>
+
+          <svg class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
+            fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </div>
+
+      </div>
+
+    </div>
+  </header>
+
+
+  <!-- DOCUMENT GRID -->
+  <main class="max-w-7xl mx-auto px-6 py-10">
+    <div id="documentList"
+         class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    </div>
+  </main>
+
+</div>
+
+
+<!-- BACKDROP -->
+<div id="docModalBackdrop"
+     class="fixed inset-0 bg-black/50 hidden z-40"
+     onclick="closeModal()"></div>
+
+<!-- MODAL -->
+<div id="docModal" class="fixed inset-0 z-50 flex items-center justify-center hidden">
+  {% include "components/_document_form.html" %}
+</div>
