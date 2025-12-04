@@ -102,7 +102,8 @@ def run_once() -> None:
         updated = 0
         skipped = 0
 
-        for doc in db.documents.find():
+        # Only process non-archived documents
+        for doc in db.documents.find({"archived": {"$ne": True}}):
             processed += 1
 
             expiry = parse_expiry_date(doc.get("expiry_date"))
@@ -112,7 +113,7 @@ def run_once() -> None:
 
             days_until = (expiry - today).days
             importance = get_importance(doc)
-            lead_time = int(doc.get("renewal_lead_time_days", 30))
+            lead_time = max(1, int(doc.get("renewal_lead_time_days") or 30))
 
             risk = compute_risk_level(
                 days_until_expiry=days_until,
