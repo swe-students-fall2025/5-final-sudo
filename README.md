@@ -79,6 +79,8 @@ npm ci
 npx @tailwindcss/cli -i ./web-app/static/css/tailwind.css -o ./web-app/static/css/output.css --minify
 ```
 
+Node tools are used only to compile CSS. The app runs fully in Python.
+
 ## Environment Setup
 
 Docker Compose is already configured with defaults. If you want to override any environment variables locally, you can create a `.env` file:
@@ -140,8 +142,13 @@ Worker-computed fields (written by the reminder service):
 ### Documents
 - `GET /api/documents` - list documents
 - `POST /api/documents` - create a document
+- `GET /api/documents?include_archived=1` - include archived documents in list
+- `POST /api/documents/<doc_id>/renew` - renew/update expiry date (optional importance/lead time)
+- `POST /api/documents/<doc_id>/archive` - archive a document
+- `POST /api/documents/<doc_id>/unarchive` - unarchive a document
 - `DELETE /api/documents/<doc_id>` - delete a document
 - `GET /api/documents/calendar.ics` - download an iCalendar (.ics) file with expiry and reminder events
+- `GET /api/documents/calendar.ics?include_archived=1` - include archived in calendar export
 
 ## Development Notes
 
