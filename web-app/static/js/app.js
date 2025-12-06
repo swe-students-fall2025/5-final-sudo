@@ -204,7 +204,7 @@ function renderCard(doc) {
         <div class="flex items-center gap-2 text-gray-700">
              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="w-5 h-5" fill="currentColor" stroke-width="2"
             stroke-linecap="round" stroke-linejoin="round">
-            <path d="M7 3V1H9V3H15V1H17V3H21C21.5523 3 22 3.44772 22 4V9H20V5H17V7H15V5H9V7H7V5H4V19H10V21H3C2.44772 21 2 20.5523 2 20V4C2 3.44772 2.44772 3 3 3H7ZM17 12C14.7909 12 13 13.7909 13 16C13 18.2091 14.7909 20 17 20C19.2091 20 21 18.2091 21 16C21 13.7909 19.2091 12 17 12ZM11 16C11 12.6863 13.6863 10 17 10C20.3137 10 23 12.6863 23 16C23 19.3137 20.3137 22 17 22C13.6863 22 11 19.3137 11 16ZM16 13V16.4142L18.2929 18.7071L19.7071 17.2929L18 15.5858V13H16Z"></path>
+            <path d="M9 1V3H15V1H17V3H21C21.5523 3 22 3.44772 22 4V20C22 20.5523 21.5523 21 21 21H3C2.44772 21 2 20.5523 2 20V4C2 3.44772 2.44772 3 3 3H7V1H9ZM20 11H4V19H20V11ZM7 5H4V9H20V5H17V7H15V5H9V7H7V5Z"></path>
             </svg>
             <span class="text-gray-600">Expires:</span>
             <span class="font-medium">${formatDate(doc.expiry_date)}</span>
@@ -215,7 +215,7 @@ function renderCard(doc) {
         <div class="flex items-center gap-2 text-gray-700">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="w-5 h-5" fill="currentColor" stroke-width="2"
             stroke-linecap="round" stroke-linejoin="round">
-             <path d="M9 1V3H15V1H17V3H21C21.5523 3 22 3.44772 22 4V20C22 20.5523 21.5523 21 21 21H3C2.44772 21 2 20.5523 2 20V4C2 3.44772 2.44772 3 3 3H7V1H9ZM20 11H4V19H20V11ZM7 5H4V9H20V5H17V7H15V5H9V7H7V5Z"></path>
+            <path d="M12 22C6.47715 22 2 17.5228 2 12C2 6.47715 6.47715 2 12 2C17.5228 2 22 6.47715 22 12C22 17.5228 17.5228 22 12 22ZM12 20C16.4183 20 20 16.4183 20 12C20 7.58172 16.4183 4 12 4C7.58172 4 4 7.58172 4 12C4 16.4183 7.58172 20 12 20ZM13 12H17V14H11V7H13V12Z"></path>
         </svg>
 
         <span class="text-gray-600">Days Left:</span>
@@ -572,7 +572,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const activeSection = document.getElementById("documentList").closest("main");
 
     // Global state
-    window.showingArchived = false;
+    showingArchived = false;
 
     function getArchivedCount() {
         return allDocuments.filter(d => d.archived === true).length;
@@ -581,7 +581,7 @@ document.addEventListener("DOMContentLoaded", () => {
     function updateArchiveButton() {
         const count = getArchivedCount();
 
-        if (window.showingArchived) {
+        if (showingArchived) {
             // --- Archived view active ---
             btn.textContent = "Close Archived";
             btn.classList.remove("bg-white", "text-gray-700", "border-gray-300");
