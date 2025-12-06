@@ -12,42 +12,81 @@
 
     <input id="searchInput"
            placeholder="Search documents..."
-           class="w-full border rounded-md pl-10 pr-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+           class="w-full bg-gray-100 rounded-md pl-10 pr-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
   </div>
 
-  <!-- TYPE FILTER -->
-  <div class="relative">
-    <select id="filterType"
-            class="appearance-none border rounded-md px-3 py-2 text-sm pr-8 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
-      <option value="all">All Types</option>
-      <!-- JS injects more here -->
-    </select>
 
-    <span class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2">
+  <!-- ---------------------------- -->
+  <!-- CUSTOM SELECT: TYPE FILTER -->
+  <!-- ---------------------------- -->
+  <div class="custom-select relative min-w-[180px]">
+
+    <button class="select-trigger w-full flex justify-between items-center bg-gray-100 rounded-md px-3 py-2 text-sm">
+      <span class="select-value text-gray-700">All Types</span>
       <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" stroke-width="2"
            viewBox="0 0 24 24">
         <polyline points="6 9 12 15 18 9"></polyline>
       </svg>
-    </span>
+    </button>
+
+    <div class="select-menu dropdown-content absolute left-0 right-0 mt-2 hidden z-50">
+      <div class="dropdown-option" data-value="all">All Types</div>
+      <!-- Dynamic types injected by JS -->
+    </div>
+
+    <input type="hidden" class="select-input" id="filterType" value="all">
   </div>
 
-  <!-- IMPORTANCE FILTER -->
-  <div class="relative">
-    <select id="filterImportance"
-            class="appearance-none border rounded-md px-3 py-2 text-sm pr-8 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
-      <option value="all">All Importance</option>
-      <option value="Critical">Critical</option>
-      <option value="High">High</option>
-      <option value="Medium">Medium</option>
-      <option value="Low">Low</option>
-    </select>
 
-    <span class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2">
+  <!-- ---------------------------- -->
+  <!-- CUSTOM SELECT: RISK LEVEL -->
+  <!-- ---------------------------- -->
+  <div class="custom-select relative min-w-[180px]">
+
+    <button class="select-trigger w-full flex justify-between items-center bg-gray-100 rounded-md px-3 py-2 text-sm">
+      <span class="select-value text-gray-700">All Importance</span>
       <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" stroke-width="2"
            viewBox="0 0 24 24">
         <polyline points="6 9 12 15 18 9"></polyline>
       </svg>
-    </span>
+    </button>
+
+    <div class="dropdown-content p-2 absolute left-0 right-0 mt-2 hidden z-50">
+      <div class="dropdown-option" data-value="all">All Importance</div>
+      <div class="dropdown-option" data-value="Critical">Critical</div>
+      <div class="dropdown-option" data-value="High">High</div>
+      <div class="dropdown-option" data-value="Medium">Medium</div>
+      <div class="dropdown-option" data-value="Low">Low</div>
+    </div>
+
+    <input type="hidden" class="select-input" id="filterImportance" value="all">
   </div>
+
+
+  <button id="archiveToggleBtn"
+  class="flex items-center gap-2 px-4 py-2 rounded-lg border text-sm transition
+         bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
+>
+  <!-- Icon -->
+  <svg id="archiveIcon" xmlns="http://www.w3.org/2000/svg"
+       viewBox="0 0 24 24" fill="currentColor"
+       class="w-4 h-4">
+   <path d="M3 10H2V4.00293C2 3.44903 2.45531 3 2.9918 3H21.0082C21.556 3 22 3.43788 22 4.00293V10H21V20.0015C21 20.553 20.5551 21 20.0066 21H3.9934C3.44476 21 3 20.5525 3 20.0015V10ZM19 10H5V19H19V10ZM4 5V8H20V5H4ZM9 12H15V14H9V12Z"></path>
+  </svg>
+
+  
+
+  <!-- Text -->
+  <span id="archiveBtnText">Show Archived</span>
+
+  <!-- Badge -->
+  <span id="archiveBadge"
+        class="hidden ml-1 px-2 py-0.5 bg-gray-200 text-gray-700 rounded-full text-xs">
+  </span>
+</button>
+
+
+
+
 
 </div>
