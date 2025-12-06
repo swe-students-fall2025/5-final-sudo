@@ -18,7 +18,6 @@ summary::-webkit-details-marker {
   border-radius: 6px;
   border: 1px solid rgba(0,0,0,0.1);
 
-  /* shadows (Radix's shadow-md) */
   box-shadow:
     0 4px 6px -1px rgba(0,0,0,0.1),
     0 2px 4px -1px rgba(0,0,0,0.06);
@@ -43,7 +42,7 @@ summary::-webkit-details-marker {
   position: relative;
 }
 
-/* Hover/focus styles (Radix accent color) */
+/* Hover/focus styles  */
 .dropdown-option:hover {
   background-color: #f2f3f5;  /* light gray */
 }
@@ -51,7 +50,7 @@ summary::-webkit-details-marker {
 /* Selected item indicator */
 .dropdown-option.selected {
   font-weight: 500;
-  background-color: #eef0f3; /* same as Radix focus color */
+  background-color: #eef0f3; 
 }
 
 /* Optional checkmark */
