@@ -66,15 +66,6 @@
 </div>
     </div>
 
-    <!-- Name -->
-    <div class="space-y-1">
-      <label for="name" class="block text-sm font-medium">Document Name *</label>
-      <input id="name"
-             class="w-full bg-gray-100 rounded-lg px-3 py-2"
-             placeholder="e.g., Passport (US), Visa (F1)"
-             required>
-    </div>
-
     <!-- Label -->
     <div class="space-y-1">
       <label for="label" class="block text-sm font-medium">Label (optional)</label>
@@ -101,7 +92,7 @@
     </div>
 
     <!-- Advanced Settings -->
-    <details class="group border border-gray-200 rounded-xl overflow-hidden">
+    <details class="group border border-gray-200 rounded-xl relative">
 
       <summary class="flex items-center gap-2 px-4 py-3 text-sm text-gray-700 cursor-pointer select-none hover:bg-gray-50">
         <svg class="w-4 h-4 text-gray-600 transition-transform duration-200 group-open:rotate-90"
@@ -114,14 +105,6 @@
 
       <div class="px-4 pt-4 pb-4 space-y-4 border-t border-gray-100">
 
-        <!-- OPTIONAL Lead time -->
-        <div class="space-y-1">
-          <label for="lead_time" class="text-sm font-medium">Lead Time (days)</label>
-          <input id="lead_time"
-                 type="number"
-                 class="w-full bg-gray-100 rounded-lg px-3 py-2"
-                 placeholder="Auto (recommended)">
-        </div>
 
         <!-- OPTIONAL Importance -->
     <div class="space-y-1">
@@ -130,7 +113,7 @@
     <div class="custom-select relative w-full">
 
         <!-- Trigger -->
-        <button 
+        <button type="button"
             class="select-trigger w-full flex justify-between items-center bg-gray-100 rounded-lg px-3 py-2 text-sm"
             onclick="event.stopPropagation()"
         >
@@ -158,6 +141,16 @@
         Overrides backend defaults for special cases.
     </p>
     </div>
+
+        <!-- OPTIONAL Lead time -->
+        <div class="space-y-1">
+          <label for="lead_time" class="text-sm font-medium">Lead Time (days)</label>
+          <input id="lead_time"
+                 type="number"
+                 class="w-full bg-gray-100 rounded-lg px-3 py-2"
+                 placeholder="Auto (recommended)">
+        </div>
+
 
 
       </div>

@@ -2,7 +2,7 @@
        onclick="event.stopPropagation()">
 
     <!-- Close -->
-    <button onclick="closeEditModal()"
+    <button onclick="closeEditModal()" type="button"
             class="absolute right-4 top-4 p-2 rounded-full text-gray-400 hover:text-gray-600 transition">
       <svg xmlns="http://www.w3.org/2000/svg"
           class="w-5 h-5"
@@ -27,13 +27,6 @@
     <form id="editForm" class="space-y-5">
 
       <input type="hidden" id="edit_id">
-
-      <!-- Name -->
-      <div class="space-y-1">
-        <label class="block text-sm font-medium">Document Name</label>
-        <input id="edit_name"
-               class="w-full bg-gray-100 rounded-lg px-3 py-2">
-      </div>
 
       <!-- Label -->
       <div class="space-y-1">
@@ -62,14 +55,11 @@
       </div>
 
       <!-- Importance -->
-<!-- Importance -->
-    <div class="space-y-1">
-      <label class="text-sm font-medium">Importance</label>
+       <div class="custom-select relative w-full z-50"
+           onclick="event.stopPropagation()"
+       >
 
-      <div class="custom-select relative w-full">
-
-        <!-- Trigger -->
-        <button 
+        <button type="button"
           class="select-trigger w-full flex justify-between items-center bg-gray-100 rounded-lg px-3 py-2 text-sm"
           onclick="event.stopPropagation()">
           <span class="select-value text-gray-700">Medium</span>
@@ -79,18 +69,17 @@
           </svg>
         </button>
 
-        <!-- Dropdown options -->
-        <div class="dropdown-content p-2 absolute left-0 right-0 mt-2 hidden z-50">
+        <div class="dropdown-content p-2 absolute left-0 right-0 mt-2 hidden z-50 bg-white shadow rounded-md"
+            onclick="event.stopPropagation()">
           <div class="dropdown-option" data-value="Low">Low</div>
           <div class="dropdown-option" data-value="Medium">Medium</div>
           <div class="dropdown-option" data-value="High">High</div>
           <div class="dropdown-option" data-value="Critical">Critical</div>
         </div>
 
-        <!-- hidden input for your JS / backend -->
-        <input type="hidden" id="edit_importance" name="importance" value="Medium" class="select-input">
-      </div>
-    </div>
+  <input type="hidden" id="edit_importance" name="importance" value="Medium" class="select-input">
+</div>
+
 
       <!-- Notes -->
       <div class="space-y-1">
@@ -114,7 +103,7 @@
 
           <button type="button"
                   id="archiveBtn"
-                  onclick="archiveCurrentDoc()"
+                  onclick="console.log('clicked'); archiveCurrentDoc()"
                   class="flex-1 bg-yellow-100 text-yellow-700 border border-yellow-300 rounded-lg py-2 hover:bg-yellow-200">
             Archive
           </button>

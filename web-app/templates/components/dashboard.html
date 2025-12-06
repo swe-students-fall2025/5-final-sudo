@@ -6,7 +6,7 @@
     <div class="max-w-7xl mx-auto px-6 py-10 pb-4">
 
       <!-- TOP ROW: BRAND + ADD BUTTON -->
-      <div class="flex items-start justify-between mb-8">
+      <div class="flex flex-wrap items-start justify-between mb-8">
         
         <!-- BRAND + TEXT + LOGOUT -->
         <div>
@@ -70,7 +70,7 @@
       </div>
 
       <!-- STATS BADGES -->
-      <div class="flex gap-4 mb-8">
+      <div class="flex gap-4">
          {% include "components/_stats.html" %}
       </div>
 
@@ -91,7 +91,7 @@
 
 
   <!-- DOCUMENT GRID -->
-  <main class="max-w-7xl mx-auto px-6 py-10">
+  <main class="max-w-7xl mx-auto px-6 py-6" id="documentSection">
      <h2 class="text-lg font-semibold text-gray-700 mb-4">Active Documents</h2>
     <div id="documentList"
          class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -104,7 +104,7 @@
 <!-- BACKDROP -->
 <div id="docModalBackdrop"
      class="fixed inset-0 bg-black/50 hidden z-40"
-     onclick="closeModal()"></div>
+></div>
 
 <!-- MODAL -->
 
@@ -119,3 +119,23 @@
       {% include "components/_document_edit.html" %}
   </div>
 </div>
+
+<!-- PAGINATION CONTROLS -->
+<div id="paginationContainer" class="flex items-center justify-center gap-2 mb-6 select-none">
+  
+  <button id="prevPageBtn" class="px-3 py-1.5 shadow-sm rounded-lg text-gray-600 bg-white hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
+          <path d="M8.3685 12L13.1162 3.03212L14.8838 3.9679L10.6315 12L14.8838 20.0321L13.1162 20.9679L8.3685 12Z"></path>
+    </svg>
+  </button>
+
+  <span id="pageIndicator" class="px-3 py-1 text-gray-700 font-medium"></span>
+
+  <button id="nextPageBtn" class="px-3 py-1.5 shadow-sm rounded-lg text-gray-600 bg-white hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed">
+     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
+        <path d="M15.6315 12L10.8838 3.03212L9.11622 3.9679L13.3685 12L9.11622 20.0321L10.8838 20.9679L15.6315 12Z"></path>
+     </svg>
+  </button>
+
+</div>
+
