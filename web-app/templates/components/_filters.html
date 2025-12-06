@@ -1,7 +1,7 @@
-<div class="flex flex-wrap gap-3 mt-6 items-center">
+<div class="w-full flex flex-wrap items-center gap-3 mt-4">
 
-  <!-- SEARCH BAR -->
-  <div class="relative flex-1 min-w-[260px]">
+  <!-- SEARCH BAR (FULL WIDTH PRIORITY) -->
+  <div class="relative flex-grow min-w-[300px]">
     <span class="absolute left-3 top-1/2 -translate-y-1/2">
       <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" stroke-width="2"
            viewBox="0 0 24 24">
@@ -12,42 +12,56 @@
 
     <input id="searchInput"
            placeholder="Search documents..."
-           class="w-full border rounded-md pl-10 pr-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+           class="w-full bg-gray-100 rounded-lg pl-10 pr-3 py-2 text-sm
+                  focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
   </div>
 
-  <!-- TYPE FILTER -->
-  <div class="relative">
-    <select id="filterType"
-            class="appearance-none border rounded-md px-3 py-2 text-sm pr-8 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
-      <option value="all">All Types</option>
-      <!-- JS injects more here -->
-    </select>
-
-    <span class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2">
+  <!-- TYPE SELECT -->
+  <div id="filterTypeSelect" class="custom-select relative w-[180px]">
+    <button class="select-trigger w-full flex justify-between items-center bg-gray-100 rounded-lg px-3 py-2 text-sm">
+      <span class="select-value text-gray-700">All Types</span>
       <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" stroke-width="2"
            viewBox="0 0 24 24">
         <polyline points="6 9 12 15 18 9"></polyline>
       </svg>
-    </span>
+    </button>
+
+    <div class="dropdown-content absolute left-0 right-0 mt-2 hidden z-50 p-2">
+      <div class="dropdown-option" data-value="all">All Types</div>
+    </div>
+
+    <input type="hidden" class="select-input" id="filterType" value="all">
   </div>
 
-  <!-- IMPORTANCE FILTER -->
-  <div class="relative">
-    <select id="filterImportance"
-            class="appearance-none border rounded-md px-3 py-2 text-sm pr-8 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
-      <option value="all">All Importance</option>
-      <option value="Critical">Critical</option>
-      <option value="High">High</option>
-      <option value="Medium">Medium</option>
-      <option value="Low">Low</option>
-    </select>
-
-    <span class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2">
+  <!-- IMPORTANCE SELECT -->
+  <div id="filterImportanceSelect" class="custom-select relative w-[180px]">
+    <button class="select-trigger w-full flex justify-between items-center bg-gray-100 rounded-lg px-3 py-2 text-sm">
+      <span class="select-value text-gray-700">All Importance</span>
       <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" stroke-width="2"
            viewBox="0 0 24 24">
         <polyline points="6 9 12 15 18 9"></polyline>
       </svg>
-    </span>
+    </button>
+
+    <div class="dropdown-content absolute left-0 right-0 mt-2 hidden z-50 p-2">
+      <div class="dropdown-option" data-value="all">All Importance</div>
+      <div class="dropdown-option" data-value="Critical">Critical</div>
+      <div class="dropdown-option" data-value="High">High</div>
+      <div class="dropdown-option" data-value="Medium">Medium</div>
+      <div class="dropdown-option" data-value="Low">Low</div>
+    </div>
+
+    <input type="hidden" class="select-input" id="filterImportance" value="all">
   </div>
+
+  <!-- ARCHIVE BUTTON -->
+  <button id="archiveToggleBtn"
+          class="flex items-center gap-2 px-4 py-2 rounded-lg border text-sm transition
+                 bg-white text-gray-700 border-gray-300 hover:bg-gray-100">
+    <span id="archiveBtnText">Show Archived</span>
+    <span id="archiveBadge"
+          class="hidden ml-1 px-2 py-0.5 bg-gray-200 text-gray-700 rounded-full text-xs">
+    </span>
+  </button>
 
 </div>
