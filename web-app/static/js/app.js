@@ -92,19 +92,22 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // ---- OPTION SELECT ----
     menu.querySelectorAll(".dropdown-option").forEach(opt => {
-      opt.addEventListener("click", () => {
-        const val = opt.dataset.value;
-        const label = opt.textContent;
+        opt.addEventListener("click", () => {
+            const val = opt.dataset.value;
+            const label = opt.textContent;
 
-        hiddenInput.value = val;
-        valueDisplay.textContent = label;
-        valueDisplay.classList.remove("text-gray-500");
+            hiddenInput.value = val;
+            hiddenInput.dispatchEvent(new Event("change"));
 
-        // Close menu
-        menu.classList.remove("open");
-        setTimeout(() => menu.classList.add("hidden"), 120);
-      });
+            valueDisplay.textContent = label;
+            valueDisplay.classList.remove("text-gray-500");
+
+            menu.classList.remove("open");
+            setTimeout(() => menu.classList.add("hidden"), 120);
+        });
     });
+
+
 
   });
 
@@ -247,6 +250,50 @@ function renderCard(doc) {
 </div>`;
 }
 
+// =======================================================
+// FILTER POPULATION
+// =======================================================
+
+function normalizeTypeName(type) {
+    return (type || "other")
+        .split("_")
+        .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+        .join(" ");
+}
+
+function populateTypeFilter() {
+    const wrapper = document.getElementById("filterTypeSelect");
+    const dropdown = wrapper.querySelector(".dropdown-content");
+
+    dropdown.innerHTML = `
+        <div class="dropdown-option" data-value="all">All Types</div>
+    `;
+
+    const types = new Set(
+        allDocuments
+            .map(doc => (doc.doc_type || "other").toLowerCase())
+    );
+
+    types.forEach(t => {
+        dropdown.innerHTML += `
+            <div class="dropdown-option" data-value="${t}">
+                ${normalizeTypeName(t)}
+            </div>
+        `;
+    });
+
+    // rebind click events because options were replaced dynamically
+    dropdown.querySelectorAll(".dropdown-option").forEach(opt => {
+        opt.addEventListener("click", () => {
+            const val = opt.dataset.value;
+            wrapper.querySelector(".select-value").textContent = normalizeTypeName(val);
+            document.getElementById("filterType").value = val;
+            renderDocumentList();
+            renderArchivedList();
+        });
+    });
+}
+
 
 // =======================================================
 //  PAGINATION RENDERING
@@ -338,88 +385,6 @@ function renderPaginationControls(totalPages) {
 }
 
 // =======================================================
-//  RENDER LIST + FILTERING + STATS
-// =======================================================
-function renderDocumentList() {
-    const listEl = document.getElementById("documentList");
-    if (!listEl) return;
-
-    // --- Get filter values ONCE ---
-    const searchValue = (document.getElementById("searchInput")?.value || "").trim().toLowerCase();
-    const typeFilter = (document.getElementById("filterType")?.value || "all").toLowerCase();
-    const riskFilter = (document.getElementById("filterImportance")?.value || "all").toUpperCase();
-
-    // --- Filter documents efficiently ---
-    const filtered = allDocuments.filter(doc => {
-        // Normalize values once
-        const name = (doc.name || "").toLowerCase();
-        const type = (doc.doc_type || "").toLowerCase();
-        const label = (doc.label || "").toLowerCase();
-        const risk = (doc.risk || "").toUpperCase();
-
-        // Text search (name, type, label)
-        const matchesText =
-            !searchValue ||
-            name.includes(searchValue) ||
-            type.includes(searchValue) ||
-            label.includes(searchValue);
-
-        // Type filter
-        const matchesType = typeFilter === "all" || type === typeFilter;
-
-        // Risk filter
-        const matchesRisk = riskFilter === "all" || risk === riskFilter;
-
-        return matchesText && matchesType && matchesRisk;
-
-        
-    });
-
-    const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
-
-    // Reset page if filters changed or page out of range
-    if (currentPage > totalPages) currentPage = totalPages;
-    if (currentPage < 1) currentPage = 1;
-
-    const start = (currentPage - 1) * pageSize;
-    const pageDocs = filtered.slice(start, start + pageSize);
-
-    // --- Update stats ---
-    const totalDocs = allDocuments.length;
-    const actionNeeded = allDocuments.filter(d => d.expiry_status === "IN_WINDOW").length;
-    const criticalCount = allDocuments.filter(d => d.risk === "CRITICAL").length;
-
-    document.getElementById("statTotal").textContent = totalDocs;
-    document.getElementById("statExpiring").textContent = actionNeeded;
-    document.getElementById("statCritical").textContent = criticalCount;
-
-    document.getElementById("statExpiringBox").classList.toggle("hidden", actionNeeded === 0);
-    document.getElementById("statCriticalBox").classList.toggle("hidden", criticalCount === 0);
-
-    // --- Render "No results" state ---
-    if (pageDocs.length === 0) {
-        const isFiltering = !!searchValue || typeFilter !== "all" || riskFilter !== "all";
-
-        listEl.innerHTML = `
-            <div class="col-span-full text-center py-16">
-                <div class="w-16 h-16 bg-white border border-gray-300 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <span class="text-2xl text-gray-400">📄</span>
-                </div>
-                <h3 class="text-gray-900 mb-2">No documents found</h3>
-                <p class="text-gray-600 text-sm">
-                    ${isFiltering
-                        ? "Try adjusting your search or filters."
-                        : "Get started by adding your first document."}
-                </p>
-            </div>`;
-        return;
-    }
-
-    // --- Render results ---
-    listEl.innerHTML = filtered.map(renderCard).join("");
-}
-
-// =======================================================
 //  LOAD DOCUMENTS (backend sorted)
 // =======================================================
 
@@ -433,45 +398,54 @@ async function loadDocuments() {
     // Re-render depending on current mode
     if (showingArchived) renderArchivedList();
     else renderDocumentList();
+
+    populateTypeFilter();
+
 }
 
 function renderDocumentList() {
-    if (showingArchived) return;  // don’t render if wrong mode
+    if (showingArchived) return;
 
     const listEl = document.getElementById("documentList");
     listEl.innerHTML = "";
 
-    const search = (document.getElementById("searchInput")?.value || "").toLowerCase();
-    const typeFilter = document.getElementById("filterType")?.value || "all";
+    const searchValue = (document.getElementById("searchInput")?.value || "").trim().toLowerCase();
+    const typeFilter = (document.getElementById("filterType")?.value || "all").toLowerCase();
     const riskFilter = (document.getElementById("filterImportance")?.value || "all").toUpperCase();
 
-    const activeDocs = allDocuments.filter(d => String(d.archived) !== "true");
+    const allActiveDocs = allDocuments.filter(d => String(d.archived) !== "true");
 
-    // filtering
-    // const filtered = activeDocs.filter(doc => {
-    //     const name = (doc.name || "").toLowerCase();
-    //     const type = (doc.doc_type || "").toLowerCase();
-    //     const label = (doc.label || "").toLowerCase();
-    //     const risk = (doc.risk || "").toUpperCase();
+    const activeDocs = allActiveDocs.filter(doc => {
+        const name = (doc.name || "").toLowerCase();
+        const label = (doc.label || "").toLowerCase();
+        const notes = (doc.notes || "").toLowerCase();
+        const type = (doc.doc_type || "other").toLowerCase();
+        const risk = (doc.risk || "UNKNOWN").toUpperCase();
 
-    //     const matchesText = name.includes(search) || type.includes(search) || label.includes(search);
-    //     const matchesType = typeFilter === "all" || type === typeFilter;
-    //     const matchesRisk = riskFilter === "all" || risk === riskFilter;
+        const matchesSearch =
+            !searchValue ||
+            name.includes(searchValue) ||
+            label.includes(searchValue) ||
+            notes.includes(searchValue) ||
+            type.includes(searchValue);
 
-    //     return matchesText && matchesType && matchesRisk;
-    // });
+        const matchesType =
+            typeFilter === "all" || type === typeFilter;
 
-    // pagination
+        const matchesRisk =
+            riskFilter === "ALL" || risk === riskFilter;
+
+        return matchesSearch && matchesType && matchesRisk;
+    });
+
     const totalPages = Math.max(1, Math.ceil(activeDocs.length / pageSize));
     if (currentPage > totalPages) currentPage = totalPages;
 
     const start = (currentPage - 1) * pageSize;
     const pageDocs = activeDocs.slice(start, start + pageSize);
-    
 
     renderPaginationControls(totalPages);
     updatePagination(activeDocs.length);
-
 
     if (pageDocs.length === 0) {
         listEl.innerHTML = `<div class="py-12 text-center text-gray-500">No documents found</div>`;
@@ -479,17 +453,42 @@ function renderDocumentList() {
     }
 
     listEl.innerHTML = pageDocs.map(renderCard).join("");
-    
 }
 
-
 function renderArchivedList() {
-    if (!showingArchived) return; // only render in archived mode
+    if (!showingArchived) return;
 
     const listEl = document.getElementById("archivedList");
     listEl.innerHTML = "";
 
-    const archivedDocs = allDocuments.filter(d => String(d.archived) === "true");
+    const searchValue = (document.getElementById("searchInput")?.value || "").trim().toLowerCase();
+    const typeFilter = (document.getElementById("filterType")?.value || "all").toLowerCase();
+    const riskFilter = (document.getElementById("filterImportance")?.value || "all").toUpperCase();
+
+    const allArchivedDocs = allDocuments.filter(d => String(d.archived) === "true");
+
+    const archivedDocs = allArchivedDocs.filter(doc => {
+        const name = (doc.name || "").toLowerCase();
+        const label = (doc.label || "").toLowerCase();
+        const notes = (doc.notes || "").toLowerCase();
+        const type = (doc.doc_type || "other").toLowerCase();
+        const risk = (doc.risk || "UNKNOWN").toUpperCase();
+
+        const matchesSearch =
+            !searchValue ||
+            name.includes(searchValue) ||
+            label.includes(searchValue) ||
+            notes.includes(searchValue) ||
+            type.includes(searchValue);
+
+        const matchesType =
+            typeFilter === "all" || type === typeFilter;
+
+        const matchesRisk =
+            riskFilter === "ALL" || risk === riskFilter;
+
+        return matchesSearch && matchesType && matchesRisk;
+    });
 
     const totalPages = Math.max(1, Math.ceil(archivedDocs.length / pageSize));
     if (currentPage > totalPages) currentPage = totalPages;
@@ -507,7 +506,6 @@ function renderArchivedList() {
 
     listEl.innerHTML = pageDocs.map(renderCard).join("");
 }
-
 
 function updateArchiveCount() {
     // Update badge count on button
@@ -821,10 +819,20 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     // Filters
-    document.getElementById("searchInput")?.addEventListener("input", renderDocumentList);
+    document.getElementById("searchInput")?.addEventListener("input",(e) => {
+        renderDocumentList();
+        renderArchivedList();
+    }
+
+    );
    
     document.querySelectorAll("#filterType, #filterImportance").forEach(el => {
-        el.addEventListener("change", renderDocumentList);
+        el.addEventListener("change", (e) => {
+            renderDocumentList();
+            renderArchivedList();
+        }
+      );
+        
     });
 
 
