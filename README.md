@@ -164,6 +164,7 @@ Before submitting changes, run linting and formatting checks:
 pipenv install --dev
 pipenv run black --diff --check .
 pipenv run pylint --rcfile=../.pylintrc **/*.py
+pipenv run pytest --cov=. --cov-report=term-missing
 ```
 
 **Note:** The `--rcfile=../.pylintrc` tells pylint to use our custom rules from the root directory (this makes sure pylint isn't too strict). The `**/*.py` checks all Python files in the current subsystem.
