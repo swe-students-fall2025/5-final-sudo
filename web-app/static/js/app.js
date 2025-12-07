@@ -20,18 +20,18 @@ function riskBadge(doc) {
 
     const colors = {
         CRITICAL: "bg-red-100 text-red-700 border-red-200",
-        HIGH:     "bg-orange-100 text-orange-700 border-orange-200",
-        MEDIUM:   "bg-yellow-100 text-yellow-700 border-yellow-200",
-        LOW:      "bg-green-100 text-green-700 border-green-200",
-        UNKNOWN:  "bg-gray-100 text-gray-700 border-gray-200",
+        HIGH: "bg-orange-100 text-orange-700 border-orange-200",
+        MEDIUM: "bg-yellow-100 text-yellow-700 border-yellow-200",
+        LOW: "bg-green-100 text-green-700 border-green-200",
+        UNKNOWN: "bg-gray-100 text-gray-700 border-gray-200",
     };
 
     const icons = {
         CRITICAL: "🔴",
-        HIGH:     "⚠️",
-        MEDIUM:   "🟡",
-        LOW:      "🟢",
-        UNKNOWN:  "❔",
+        HIGH: "⚠️",
+        MEDIUM: "🟡",
+        LOW: "🟢",
+        UNKNOWN: "❔",
     };
 
     return `
@@ -131,60 +131,60 @@ function iconForType(type) {
 
 document.addEventListener("DOMContentLoaded", () => {
 
-  document.querySelectorAll(".custom-select").forEach(select => {
-    const trigger = select.querySelector(".select-trigger");
-    const menu = select.querySelector(".dropdown-content");
-    const valueDisplay = select.querySelector(".select-value");
-    const hiddenInput = select.querySelector(".select-input");
+    document.querySelectorAll(".custom-select").forEach(select => {
+        const trigger = select.querySelector(".select-trigger");
+        const menu = select.querySelector(".dropdown-content");
+        const valueDisplay = select.querySelector(".select-value");
+        const hiddenInput = select.querySelector(".select-input");
 
-    // ---- OPEN / CLOSE LOGIC ----
-    trigger.addEventListener("click", () => {
-      const isHidden = menu.classList.contains("hidden");
+        // ---- OPEN / CLOSE LOGIC ----
+        trigger.addEventListener("click", () => {
+            const isHidden = menu.classList.contains("hidden");
 
-      if (isHidden) {
-        // OPEN
-        menu.classList.remove("hidden");
-        requestAnimationFrame(() => menu.classList.add("open"));
-      } else {
-        // CLOSE
-        menu.classList.remove("open");
-        setTimeout(() => menu.classList.add("hidden"), 120);
-      }
+            if (isHidden) {
+                // OPEN
+                menu.classList.remove("hidden");
+                requestAnimationFrame(() => menu.classList.add("open"));
+            } else {
+                // CLOSE
+                menu.classList.remove("open");
+                setTimeout(() => menu.classList.add("hidden"), 120);
+            }
+        });
+
+        // ---- OPTION SELECT ----
+        menu.querySelectorAll(".dropdown-option").forEach(opt => {
+            opt.addEventListener("click", () => {
+                const val = opt.dataset.value;
+                const label = opt.textContent;
+
+                hiddenInput.value = val;
+                hiddenInput.dispatchEvent(new Event("change"));
+
+                valueDisplay.textContent = label;
+                valueDisplay.classList.remove("text-gray-500");
+
+                menu.classList.remove("open");
+                setTimeout(() => menu.classList.add("hidden"), 120);
+            });
+        });
+
+
+
     });
 
-    // ---- OPTION SELECT ----
-    menu.querySelectorAll(".dropdown-option").forEach(opt => {
-        opt.addEventListener("click", () => {
-            const val = opt.dataset.value;
-            const label = opt.textContent;
+    // ---- CLICK OUTSIDE TO CLOSE ANY OPEN MENU ----
+    document.addEventListener("click", (e) => {
+        document.querySelectorAll(".custom-select").forEach(select => {
+            const menu = select.querySelector(".dropdown-content");
+            if (!menu) return;
 
-            hiddenInput.value = val;
-            hiddenInput.dispatchEvent(new Event("change"));
-
-            valueDisplay.textContent = label;
-            valueDisplay.classList.remove("text-gray-500");
-
-            menu.classList.remove("open");
-            setTimeout(() => menu.classList.add("hidden"), 120);
+            if (!select.contains(e.target)) {
+                menu.classList.remove("open");
+                setTimeout(() => menu.classList.add("hidden"), 120);
+            }
         });
     });
-
-
-
-  });
-
-  // ---- CLICK OUTSIDE TO CLOSE ANY OPEN MENU ----
-  document.addEventListener("click", (e) => {
-    document.querySelectorAll(".custom-select").forEach(select => {
-      const menu = select.querySelector(".dropdown-content");
-      if (!menu) return;
-
-      if (!select.contains(e.target)) {
-        menu.classList.remove("open");
-        setTimeout(() => menu.classList.add("hidden"), 120);
-      }
-    });
-  });
 
 });
 
@@ -286,7 +286,7 @@ function renderCard(doc) {
         <span class="text-gray-600">Days Left:</span>
         <span class="font-medium">${doc.last_days_until} days</span>
         </div>
-        ` : "" }
+        ` : ""}
 
         <!-- Label -->
         ${doc.label ? `
@@ -455,13 +455,14 @@ async function loadDocuments() {
     allDocuments = await res.json();
 
     updateStats(allDocuments);
-     requestAnimationFrame(() => refreshArchiveButton());
+    requestAnimationFrame(() => refreshArchiveButton());
 
     // Re-render depending on current mode
     if (showingArchived) renderArchivedList();
     else renderDocumentList();
 
     populateTypeFilter();
+    populateLabelOptions();
 
 }
 
@@ -660,20 +661,20 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Toggle logic
     btn.addEventListener("click", () => {
-    showingArchived = !showingArchived;
-    currentPage = 1;
+        showingArchived = !showingArchived;
+        currentPage = 1;
 
-    if (showingArchived) {
-        document.getElementById("documentSection").classList.add("hidden");
-        document.getElementById("archivedSection").classList.remove("hidden");
-        renderArchivedList();
-    } else {
-        document.getElementById("archivedSection").classList.add("hidden");
-        document.getElementById("documentSection").classList.remove("hidden");
-        renderDocumentList();
-    }
+        if (showingArchived) {
+            document.getElementById("documentSection").classList.add("hidden");
+            document.getElementById("archivedSection").classList.remove("hidden");
+            renderArchivedList();
+        } else {
+            document.getElementById("archivedSection").classList.add("hidden");
+            document.getElementById("documentSection").classList.remove("hidden");
+            renderDocumentList();
+        }
 
-    refreshArchiveButton();
+        refreshArchiveButton();
     });
 
 
@@ -731,6 +732,7 @@ function openEditModal(id) {
     // Now modal is in DOM → populate fields
     setTimeout(() => {
         document.getElementById("edit_id").value = doc.id;
+        document.getElementById("edit_name").value = doc.name || "";
         document.getElementById("edit_label").value = doc.label || "";
         document.getElementById("edit_expiry").value = doc.expiry_date || "";
         document.getElementById("edit_lead").value = doc.renewal_lead_time_days || "";
@@ -856,8 +858,15 @@ document.addEventListener("DOMContentLoaded", () => {
     addForm?.addEventListener("submit", async (e) => {
         e.preventDefault();
 
+        const docType = document.getElementById("doc_type").value;
+        if (!docType) {
+            alert("Please select a document type.");
+            return;
+        }
+
         const payload = {
-            doc_type: document.getElementById("doc_type").value,
+            doc_type: docType,
+            name: document.getElementById("name").value.trim() || null,
             label: document.getElementById("label").value || null,
             expiry_date: document.getElementById("expiry_date").value,
             renewal_lead_time_days: document.getElementById("lead_time")?.value || null,
@@ -881,20 +890,20 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     // Filters
-    document.getElementById("searchInput")?.addEventListener("input",(e) => {
+    document.getElementById("searchInput")?.addEventListener("input", (e) => {
         renderDocumentList();
         renderArchivedList();
     }
 
     );
-   
+
     document.querySelectorAll("#filterType, #filterImportance").forEach(el => {
         el.addEventListener("change", (e) => {
             renderDocumentList();
             renderArchivedList();
         }
-      );
-        
+        );
+
     });
 
 
@@ -912,13 +921,16 @@ document.getElementById("editForm").addEventListener("submit", async (e) => {
     if (!id) return;
 
     const payload = {
-        new_expiry_date: document.getElementById("edit_expiry").value,
+        expiry_date: document.getElementById("edit_expiry").value,
         importance: document.getElementById("edit_importance").value,
-        renewal_lead_time_days: document.getElementById("edit_lead").value
+        renewal_lead_time_days: document.getElementById("edit_lead").value,
+        name: document.getElementById("edit_name").value,
+        label: document.getElementById("edit_label").value,
+        notes: document.getElementById("edit_notes").value
     };
 
-    const res = await fetch(`/api/documents/${id}/renew`, {
-        method: "POST",
+    const res = await fetch(`/api/documents/${id}`, {
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
     });
@@ -930,6 +942,29 @@ document.getElementById("editForm").addEventListener("submit", async (e) => {
         alert("Failed to save.");
     }
 });
+
+function populateLabelOptions() {
+    const dataList = document.getElementById("labelOptions");
+    if (!dataList) return;
+
+    dataList.innerHTML = "";
+
+    // Get all unique labels from all non-archived documents
+    const labels = new Set();
+    if (allDocuments) {
+        allDocuments.forEach(doc => {
+            if (doc.label) {
+                labels.add(doc.label);
+            }
+        });
+    }
+
+    Array.from(labels).sort().forEach(label => {
+        const opt = document.createElement("option");
+        opt.value = label;
+        dataList.appendChild(opt);
+    });
+}
 
 // =======================================================
 //  CALENDAR DOWNLOAD

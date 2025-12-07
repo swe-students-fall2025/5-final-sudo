@@ -142,6 +142,7 @@ Worker-computed fields (written by the reminder service):
 ### Documents
 - `GET /api/documents` - list documents
 - `POST /api/documents` - create a document
+- `PATCH /api/documents/<doc_id>` - update document details or renewal settings
 - `GET /api/documents?include_archived=1` - include archived documents in list
 - `POST /api/documents/<doc_id>/renew` - renew/update expiry date (optional importance/lead time)
 - `POST /api/documents/<doc_id>/archive` - archive a document

@@ -203,6 +203,103 @@ def renew_document(doc_id):
     return jsonify(_serialize_doc(updated)), 200
 
 
+@bp.patch("/<doc_id>")
+@login_required
+def update_document(doc_id):
+    """
+    General purpose update.
+    Can update details like label, notes AND/OR renewal fields like expiry, importance, lead.
+    If 'expiry_date' is changed, it treats it as a renewal.
+    """
+    from main import get_db
+
+    db = get_db()
+    uid = ObjectId(current_user.id)
+    payload = request.get_json(silent=True) or {}
+
+    try:
+        oid = ObjectId(doc_id)
+    except Exception:
+        return jsonify({"error": "invalid_id"}), 400
+
+    doc = db.documents.find_one({"_id": oid, "user_id": uid})
+    if not doc:
+        return jsonify({"error": "not_found"}), 404
+
+    update_fields = {
+        "updated_at": datetime.now(timezone.utc),
+    }
+
+    # Handle Simple Text Fields
+    if "label" in payload:
+        update_fields["label"] = (payload["label"] or "").strip() or None
+
+    if "notes" in payload:
+        update_fields["notes"] = (payload["notes"] or "").strip()
+
+    if "name" in payload:
+        name_val = (payload["name"] or "").strip()
+        if not name_val:
+            # Fallback: regenerate from type + label
+            new_label = (
+                update_fields["label"] if "label" in update_fields else doc.get("label")
+            )
+            name_val = build_name(doc.get("doc_type"), new_label)
+        update_fields["name"] = name_val
+    new_expiry = (payload.get("expiry_date") or "").strip()
+    if new_expiry:
+        if not parse_date_strict(new_expiry):
+            return (
+                jsonify(
+                    {"error": "invalid_expiry_date_format", "expected": "YYYY-MM-DD"}
+                ),
+                400,
+            )
+
+        # Check if it's actually different
+        if new_expiry != doc.get("expiry_date"):
+            update_fields["expiry_date"] = new_expiry
+            update_fields["archived"] = False
+
+            history_entry = {
+                "old_expiry_date": doc.get("expiry_date"),
+                "new_expiry_date": new_expiry,
+                "renewed_at": datetime.now(timezone.utc),
+            }
+
+            db.documents.update_one(
+                {"_id": oid}, {"$push": {"renewal_history": history_entry}}
+            )
+
+            db.documents.update_one(
+                {"_id": oid},
+                {
+                    "$unset": {
+                        "archived_at": "",
+                        "last_risk": "",
+                        "last_days_until": "",
+                        "last_checked_at": "",
+                    }
+                },
+            )
+
+    if "importance" in payload:
+        importance_raw = payload["importance"]
+        imp = coerce_importance(importance_raw, doc.get("importance", 3))
+        update_fields["importance"] = imp
+
+    if "renewal_lead_time_days" in payload:
+        lead_raw = payload["renewal_lead_time_days"]
+        lead = coerce_lead_time(lead_raw, doc.get("renewal_lead_time_days", 30))
+        update_fields["renewal_lead_time_days"] = lead
+
+    # Execute Set
+    db.documents.update_one({"_id": oid, "user_id": uid}, {"$set": update_fields})
+
+    updated = db.documents.find_one({"_id": oid, "user_id": uid})
+    return jsonify(_serialize_doc(updated)), 200
+
+
 @bp.post("/<doc_id>/archive")
 @login_required
 def archive_document(doc_id):

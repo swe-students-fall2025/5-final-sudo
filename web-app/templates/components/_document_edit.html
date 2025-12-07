@@ -28,66 +28,87 @@
 
       <input type="hidden" id="edit_id">
 
-      <!-- Label -->
+      <!-- Expiry (Primary Action) -->
       <div class="space-y-1">
-        <label class="block text-sm font-medium">Label (optional)</label>
-        <input id="edit_label"
+        <label class="text-sm font-medium">Expiry Date</label>
+        <input id="edit_expiry"
+               type="date"
                class="w-full bg-gray-100 rounded-lg px-3 py-2">
       </div>
 
-      <!-- Expiry + Lead Time -->
-      <div class="grid grid-cols-2 gap-4">
-
-        <div class="space-y-1">
-          <label class="text-sm font-medium">Expiry Date</label>
-          <input id="edit_expiry"
-                 type="date"
-                 class="w-full bg-gray-100 rounded-lg px-3 py-2">
-        </div>
-
-        <div class="space-y-1">
-          <label class="text-sm font-medium">Lead Time</label>
-          <input id="edit_lead"
-                 type="number"
-                 class="w-full bg-gray-100 rounded-lg px-3 py-2">
-        </div>
-
-      </div>
-
-      <!-- Importance -->
-       <div class="custom-select relative w-full z-50"
-           onclick="event.stopPropagation()"
-       >
-
-        <button type="button"
-          class="select-trigger w-full flex justify-between items-center bg-gray-100 rounded-lg px-3 py-2 text-sm"
-          onclick="event.stopPropagation()">
-          <span class="select-value text-gray-700">Medium</span>
-          <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" stroke-width="2"
-              viewBox="0 0 24 24">
-            <polyline points="6 9 12 15 18 9"></polyline>
-          </svg>
-        </button>
-
-        <div class="dropdown-content p-2 absolute left-0 right-0 mt-2 hidden z-50 bg-white shadow rounded-md"
-            onclick="event.stopPropagation()">
-          <div class="dropdown-option" data-value="Low">Low</div>
-          <div class="dropdown-option" data-value="Medium">Medium</div>
-          <div class="dropdown-option" data-value="High">High</div>
-          <div class="dropdown-option" data-value="Critical">Critical</div>
-        </div>
-
-  <input type="hidden" id="edit_importance" name="importance" value="Medium" class="select-input">
-</div>
-
-
-      <!-- Notes -->
+       <!-- Notes (Context) -->
       <div class="space-y-1">
         <label class="text-sm font-medium">Notes (optional)</label>
         <textarea id="edit_notes"
                   class="w-full bg-gray-100 rounded-lg px-3 py-2"
                   rows="3"></textarea>
       </div>
+
+      <!-- Advanced: Label, Lead Time, Importance -->
+      <details class="group">
+        <summary class="list-none flex flex-wrap items-center cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 rounded group-open:mb-2">
+            <h3 class="flex flex-1 p-2 font-semibold text-gray-700">Advanced Options</h3>
+            <div class="flex w-10 items-center justify-center">
+                <div class="border-8 border-transparent border-l-gray-600 ml-2 group-open:rotate-90 transition-transform origin-center"></div>
+            </div>
+        </summary>
+        
+        <div class="space-y-4 pt-2 pl-2 border-l-2 border-gray-100">
+            <!-- Name -->
+            <div class="space-y-1">
+                <label class="block text-sm font-medium">Document Name</label>
+                <input id="edit_name"
+                    autocomplete="off"
+                    class="w-full bg-gray-100 rounded-lg px-3 py-2">
+            </div>
+
+            <!-- Label -->
+            <div class="space-y-1">
+                <label class="block text-sm font-medium">Label (optional)</label>
+                <input id="edit_label"
+                    list="labelOptions"
+                    autocomplete="off"
+                    class="w-full bg-gray-100 rounded-lg px-3 py-2">
+            </div>
+
+            <!-- Lead Time -->
+            <div class="space-y-1">
+             <label class="text-sm font-medium">Lead Time (Days)</label>
+             <input id="edit_lead"
+                    type="number"
+                    class="w-full bg-gray-100 rounded-lg px-3 py-2">
+            </div>
+
+            <!-- Importance -->
+            <div class="space-y-1">
+                <label class="text-sm font-medium">Importance</label>
+                <div class="custom-select relative w-full z-10" onclick="event.stopPropagation()">
+                    <button type="button"
+                    class="select-trigger w-full flex justify-between items-center bg-gray-100 rounded-lg px-3 py-2 text-sm"
+                    onclick="event.stopPropagation()">
+                    <span class="select-value text-gray-700">Medium</span>
+                    <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" stroke-width="2"
+                        viewBox="0 0 24 24">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                    </button>
+
+                    <div class="dropdown-content p-2 absolute left-0 right-0 mt-2 hidden z-50 bg-white shadow rounded-md"
+                        onclick="event.stopPropagation()">
+                    <div class="dropdown-option" data-value="Low">Low</div>
+                    <div class="dropdown-option" data-value="Medium">Medium</div>
+                    <div class="dropdown-option" data-value="High">High</div>
+                    <div class="dropdown-option" data-value="Critical">Critical</div>
+                    </div>
+                
+                    <input type="hidden" id="edit_importance" name="importance" value="Medium" class="select-input">
+                </div>
+            </div>
+        </div>
+      </details>
+
+
+
 
       <!-- ACTION BUTTONS -->
       <div class="flex flex-col gap-3 pt-4">
