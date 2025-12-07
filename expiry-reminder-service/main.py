@@ -157,4 +157,5 @@ def main() -> None:
         print(f"{SERVICE_NAME} stopped", flush=True)
 
 
-if __name__ == "__main__": main()
+if __name__ == "__main__": 
+    main()
