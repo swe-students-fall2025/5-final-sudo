@@ -26,6 +26,16 @@
   <!-- FORM -->
   <form id="addForm" class="space-y-5">
 
+    <!-- Name -->
+    <div class="space-y-1">
+      <label for="name" class="block text-sm font-medium">Document Name (optional)</label>
+      <input id="name"
+             autocomplete="off"
+             class="w-full bg-gray-100 rounded-lg px-3 py-2"
+             placeholder="e.g. My Esports Membership">
+      <p class="text-xs text-gray-500">Auto-generated from type if left blank</p>
+    </div>
+
     <!-- Document Type -->
     <div class="space-y-1">
       <label for="doc_type" class="block text-sm font-medium">Document Type *</label>
@@ -66,13 +76,7 @@
 </div>
     </div>
 
-    <!-- Label -->
-    <div class="space-y-1">
-      <label for="label" class="block text-sm font-medium">Label (optional)</label>
-      <input id="label"
-             class="w-full bg-gray-100 rounded-lg px-3 py-2"
-             placeholder='e.g., “Work”, “Personal”, “Mom”'>
-    </div>
+
 
     <!-- Expiry -->
     <div class="space-y-1">
@@ -81,6 +85,18 @@
              type="date"
              class="w-full bg-gray-100 rounded-lg px-3 py-2"
              required>
+    </div>
+
+    <!-- Label -->
+    <div class="space-y-1">
+      <label for="label" class="block text-sm font-medium">Label (optional)</label>
+      <input id="label"
+             list="labelOptions"
+             autocomplete="off"
+             class="w-full bg-gray-100 rounded-lg px-3 py-2"
+             placeholder="Select existing or type new...">
+      <p class="text-xs text-gray-500">Group documents together (e.g. Work, Family)</p>
+      <datalist id="labelOptions"></datalist>
     </div>
 
     <!-- Notes -->
