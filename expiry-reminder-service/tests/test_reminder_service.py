@@ -31,8 +31,14 @@ def test_compute_risk_level_windows():
     assert compute_risk_level(days_until_expiry=50, importance=5) == "MEDIUM"
     assert compute_risk_level(days_until_expiry=50, importance=2) == "LOW"
     assert compute_risk_level(days_until_expiry=1, importance=5) == "CRITICAL"
-    assert compute_risk_level(days_until_expiry=8, importance=3, lead_time_days=20) == "HIGH"
-    assert compute_risk_level(days_until_expiry=18, importance=3, lead_time_days=20) == "MEDIUM"
+    assert (
+        compute_risk_level(days_until_expiry=8, importance=3, lead_time_days=20)
+        == "HIGH"
+    )
+    assert (
+        compute_risk_level(days_until_expiry=18, importance=3, lead_time_days=20)
+        == "MEDIUM"
+    )
 
 
 def test_parse_expiry_date_variants():
@@ -54,6 +60,7 @@ def test_normalize_and_importance():
 
 def test_run_once_updates_only_valid_docs(monkeypatch):
     fake_now = datetime(2024, 1, 1, 12, 0, 0)
+
     class FakeDateTime(datetime):
         @classmethod
         def utcnow(cls):
@@ -142,7 +149,9 @@ def test_get_db_returns_named_database(monkeypatch):
 
 
 def test_run_once_handles_db_errors(monkeypatch, capsys):
-    monkeypatch.setattr(main, "get_db", lambda: (_ for _ in ()).throw(Exception("boom")))
+    monkeypatch.setattr(
+        main, "get_db", lambda: (_ for _ in ()).throw(Exception("boom"))
+    )
     main.run_once()
     captured = capsys.readouterr().out
     assert "Error connecting/processing DB: boom" in captured
