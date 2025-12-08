@@ -7,6 +7,14 @@ let showingArchived = false;
 let currentPage = 1;
 let pageSize = 6;
 
+function getLocalTimezone() {
+    try {
+        return Intl.DateTimeFormat().resolvedOptions().timeZone;
+    } catch (e) {
+        return "UTC";
+    }
+}
+
 const archivedList = document.getElementById("archivedList");
 const archivedSection = document.getElementById("archivedSection");
 
@@ -223,6 +231,15 @@ function updateStats(docs) {
 // =======================================================
 function formatDate(dateStr) {
     if (!dateStr) return "";
+    // Handle YYYY-MM-DD specifically to avoid UTC/Timezone shifts
+    if (typeof dateStr === "string" && dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        const [y, m, d] = dateStr.split("-").map(Number);
+        // new Date(y, mIndex, d) creates a Local Time date
+        const date = new Date(y, m - 1, d);
+        return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    }
+
+    // Fallback
     const d = new Date(dateStr);
     return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
@@ -276,7 +293,7 @@ function renderCard(doc) {
         </div>
 
         <!-- Days Left -->
-        ${doc.last_days_until !== undefined ? `
+        ${doc.days_until !== undefined && doc.days_until !== null ? `
         <div class="flex items-center gap-2 text-gray-700">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="w-5 h-5" fill="currentColor" stroke-width="2"
             stroke-linecap="round" stroke-linejoin="round">
@@ -284,7 +301,7 @@ function renderCard(doc) {
         </svg>
 
         <span class="text-gray-600">Days Left:</span>
-        <span class="font-medium">${doc.last_days_until} days</span>
+        <span class="font-medium">${doc.days_until} days</span>
         </div>
         ` : ""}
 
@@ -802,8 +819,23 @@ function showAuth() {
 async function checkAuth() {
     const res = await fetch("/api/auth/me");
     const data = await res.json();
-    if (data.logged_in) showDashboard();
-    else showAuth();
+    if (data.logged_in) {
+        // Auto-Sync: If server timezone differs from browser, update it
+        const localTz = getLocalTimezone();
+        const serverTz = data.user.timezone || "UTC";
+
+        if (localTz && serverTz !== localTz) {
+            // silent update
+            await fetch("/api/auth/me", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ timezone: localTz })
+            });
+        }
+        showDashboard();
+    } else {
+        showAuth();
+    }
 }
 
 async function logout() {
@@ -832,7 +864,7 @@ document.addEventListener("DOMContentLoaded", () => {
             body: JSON.stringify({ email, password }),
         });
 
-        if (res.ok) showDashboard();
+        if (res.ok) checkAuth();
         else alert("Login failed");
     });
 
@@ -843,13 +875,15 @@ document.addEventListener("DOMContentLoaded", () => {
         const email = document.getElementById("regEmail").value;
         const password = document.getElementById("regPassword").value;
 
+        const timezone = getLocalTimezone();
+
         const res = await fetch("/api/auth/register", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email, password }),
+            body: JSON.stringify({ email, password, timezone }),
         });
 
-        if (res.ok) showDashboard();
+        if (res.ok) checkAuth();
         else alert("Registration failed");
     });
 

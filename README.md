@@ -8,7 +8,7 @@ DocKeeper is a document expiry tracking system designed to help users manage imp
 
 1. **MongoDB**: Shared database for all persisted data.
 2. **Web Application**: A Flask-based web interface + REST API for creating and viewing expiring items.
-3. **Expiry Reminder Service**: A background worker that periodically scans the database, calculates urgency/risk, and writes the latest computed status back into each item.
+3. **Expiry Reminder Service**: A background worker that periodically scans the database, calculates urgency/risk, and sends a **weekly action-needed digest** (via email or log) if critical or high-risk items are found.
 
 All services communicate through MongoDB and are designed to be deployed together.
 
@@ -40,11 +40,14 @@ All services communicate through MongoDB and are designed to be deployed togethe
 
 2. Start all services:
    ```bash
-   docker compose up --build
+   docker compose up -d --build
    ```
 
+3. Open the Dashboard:
+   [http://localhost:8000](http://localhost:8000)
+
 This starts:
-- **MongoDB** on `27017`
+- **MongoDB** (internal only)
 - **Web App** on `8000`
 - **Reminder Service** running in the background
 
@@ -55,6 +58,22 @@ Stop everything with:
 
 - View all logs: `docker compose logs -f`
 - View one service: `docker compose logs -f web-app` or `docker compose logs -f reminder-service`
+
+**Verifying Mock Emails:**
+When `EMAIL_MODE=mock` (default), the reminder service prints digest emails to the logs instead of sending them. To see them:
+1. Create a document expiring soon (e.g., tomorrow) to trigger a "High" risk.
+2. Watch the logs:
+   ```bash
+   docker compose logs -f reminder-service
+   ```
+3. You will see: `=== MOCK EMAIL DIGEST ===`
+
+**Tip: Resetting the 7-Day Email Cooldown**
+If you want to force another email (mock or real) immediately:
+```bash
+# Enter the mongo container
+docker compose exec mongodb mongosh dockeeper --eval "db.notification_state.deleteMany({})"
+```
 
 ## TailwindCSS
 
@@ -79,17 +98,24 @@ npm ci
 npx @tailwindcss/cli -i ./web-app/static/css/tailwind.css -o ./web-app/static/css/output.css --minify
 ```
 
-Node tools are used only to compile CSS. The app runs fully in Python.
+Node.js is used strictly for development (compiling TailwindCSS). There is no Node.js runtime in the final application.
 
-## Environment Setup
+## Configuration Setup
 
-Docker Compose is already configured with defaults. If you want to override any environment variables locally, you can create a `.env` file:
+For both local development and deployment, you should create a `.env` file to configure secrets and services.
 
-```bash
-cp .env.example .env
-```
+1. **Create the file:**
+   ```bash
+   # Windows
+   copy .env.example .env
 
-Right now, this provides all required environment variables for both services. You can customize values in `.env` if needed.
+   # Mac/Linux
+   cp .env.example .env
+   ```
+
+2. **Edit `.env`:**
+   - **Local:** The defaults work out of the box.
+   - **Production:** You **MUST** update `SECRET_KEY` and email settings.
 
 ## Environment Variables
 
@@ -101,6 +127,7 @@ DocKeeper is configured through environment variables (via Docker Compose).
 |----------|---------|-------------|
 | `MONGO_URI` | `mongodb://mongodb:27017` | MongoDB connection string |
 | `MONGO_DB_NAME` | `dockeeper` | MongoDB database name |
+| `SECRET_KEY` | - | **Required**. Cryptographic key for sessions. |
 
 ### Reminder Service
 
@@ -109,10 +136,14 @@ DocKeeper is configured through environment variables (via Docker Compose).
 | `MONGO_URI` | `mongodb://mongodb:27017` | MongoDB connection string |
 | `MONGO_DB_NAME` | `dockeeper` | MongoDB database name |
 | `REMINDER_INTERVAL_SECONDS` | `60` | Interval between reminder checks (in seconds) |
+| `EMAIL_MODE` | `mock` | `mock` (log only) or `brevo` (send real emails) |
+| `BREVO_API_KEY` | - | Brevo API Key (required if mode is `brevo`) |
+| `BREVO_SENDER_EMAIL` | - | Sender email address (required if mode is `brevo`) |
+| `BREVO_SENDER_NAME` | `DocKeeper` | Sender name for emails |
 
-### Local `.env` (optional)
+### Production Configuration (.env)
 
-If you want a local `.env` file for Docker Compose, create `.env` in the project root and set values as needed. A reference sample is provided as `.env.example`.
+For deployment (e.g., DigitalOcean), populating `.env` is **required** to ensure security and proper email functionality. Never deploy with the default `SECRET_KEY`.
 
 ## Database Collections
 
@@ -153,7 +184,7 @@ Worker-computed fields (written by the reminder service):
 
 ## Development Notes
 
-This repo is currently designed to be run via Docker Compose will be ran online later.
+This repo is designed to be run via Docker Compose. It is fully configured for deployment on Digital Ocean.
 
 ## Code Quality
 

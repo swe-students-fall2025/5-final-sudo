@@ -37,11 +37,38 @@ def parse_date_strict(value: str) -> date | None:
         return None
 
 
-def compute_days_until(expiry_value: str) -> int | None:
+def compute_days_until(expiry_value: str, user_timezone: str = "UTC") -> int | None:
+    from zoneinfo import ZoneInfo
+
     expiry = parse_date_loose(expiry_value)
     if not expiry:
         return None
-    return (expiry - date.today()).days
+
+    try:
+        tz = ZoneInfo(user_timezone)
+    except Exception:
+        tz = ZoneInfo("UTC")
+
+    # Get "today" in the user's timezone
+    today_in_tz = datetime.now(tz).date()
+    return (expiry - today_in_tz).days
+
+
+def compute_risk_level(
+    days_until_expiry: int, importance: int, lead_time_days: int = 30
+) -> str:
+    if days_until_expiry < 0:
+        return "CRITICAL"
+    if days_until_expiry > lead_time_days:
+        return "MEDIUM" if importance >= 5 else "LOW"
+
+    half = max(1, lead_time_days // 2)
+    quarter = max(1, lead_time_days // 4)
+    if days_until_expiry <= quarter:
+        return "CRITICAL"
+    if days_until_expiry <= half:
+        return "CRITICAL" if importance >= 4 else "HIGH"
+    return "HIGH" if importance >= 4 else "MEDIUM"
 
 
 def compute_status(days_until: int, lead_time_days: int) -> str:
@@ -63,7 +90,9 @@ DOC_TEMPLATES = {
     "subscription": {"category": "Subscription", "importance": 2, "lead_time": 7},
     "warranty": {"category": "Warranty", "importance": 2, "lead_time": 30},
     "license": {"category": "ID", "importance": 4, "lead_time": 90},
-    "membership": {"category": "Subscription", "importance": 2, "lead_time": 30},
+    "membership": {"category": "Subscription", "importance": 2, "lead_time": 7},
+    "credit_card": {"category": "Finance", "importance": 5, "lead_time": 30},
+    "medical_record": {"category": "Health", "importance": 4, "lead_time": 60},
     "certification": {"category": "ID", "importance": 4, "lead_time": 60},
     "other": {"category": "Other", "importance": 3, "lead_time": 30},  # default only
 }
@@ -390,21 +419,29 @@ def list_documents():
         query["archived"] = {"$ne": True}
     docs = list(db.documents.find(query))
 
+    # Get user's timezone
+    user_doc = db.users.find_one({"_id": uid})
+    user_tz = user_doc.get("timezone", "UTC") if user_doc else "UTC"
+
     out = []
     for d in docs:
         lead = int(d.get("renewal_lead_time_days") or 0)
 
-        # prefer worker value if present, else compute quickly
-        days_until = d.get("last_days_until")
-        if days_until is None:
-            days_until = compute_days_until(d.get("expiry_date", ""))
+        # Always compute days_until based on user's timezone (ignore worker's UTC cache)
+        days_until = compute_days_until(d.get("expiry_date", ""), user_tz)
 
         if days_until is None:
             expiry_status = "UNKNOWN"
+            risk = "UNKNOWN"
         else:
             expiry_status = compute_status(int(days_until), lead)
 
-        risk = d.get("last_risk") or "UNKNOWN"
+            # Hybrid Helper: Use cached 'risk' if available
+            # or recompute if you want absolute precision.
+            risk = d.get("last_risk")
+            if not risk or risk == "UNKNOWN":
+                importance = int(d.get("importance") or 3)
+                risk = compute_risk_level(int(days_until), importance, lead)
 
         d["days_until"] = days_until
         d["expiry_status"] = expiry_status

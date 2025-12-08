@@ -63,6 +63,10 @@ def test_run_once_updates_only_valid_docs(monkeypatch):
 
     class FakeDateTime(datetime):
         @classmethod
+        def now(cls, tz=None):
+            return fake_now
+
+        @classmethod
         def utcnow(cls):
             return fake_now
 
