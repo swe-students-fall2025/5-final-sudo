@@ -1,22 +1,28 @@
 <!-- PAGE WRAPPER -->
 <div class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-
   <!-- WHITE HEADER BLOCK -->
   <header class="bg-white border-b border-gray-200">
     <div class="max-w-7xl mx-auto px-6 py-10 pb-4">
-
       <!-- TOP ROW: BRAND + ADD BUTTON -->
       <div class="flex flex-wrap items-start justify-between mb-8">
-        
         <!-- BRAND + TEXT + LOGOUT -->
         <div>
           <div class="flex items-center gap-3 mb-2">
-            <div class="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-blue-500/30">
-              <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2"
-                   viewBox="0 0 24 24">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 
+            <div
+              class="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-blue-500/30"
+            >
+              <svg
+                class="w-6 h-6"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  d="M14 2H6a2 2 0 0 0-2 2v16a2 
                         2 0 0 0 2 2h12a2 2 0 0 
-                        0 2-2V8z"></path>
+                        0 2-2V8z"
+                ></path>
                 <polyline points="14 2 14 8 20 8"></polyline>
                 <line x1="16" y1="13" x2="8" y2="13"></line>
                 <line x1="16" y1="17" x2="8" y2="17"></line>
@@ -31,111 +37,150 @@
             Smart document tracking with risk-based reminders
           </p>
 
-        <button onclick="logout()"
-        class="flex items-center gap-1 text-gray-500  hover:text-red-700
-                px-2 py-1
-                mt-2 -ml-2 transition">
-        
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
-            fill="currentColor" class="w-4 h-4">
-            <path d="M4 18H6V20H18V4H6V6H4V3C4 2.44772 4.44772 2 5 2H19C19.5523 2 20 2.44772 20 3V21C20 21.5523 19.5523 22 19 22H5C4.44772 22 4 21.5523 4 21V18ZM6 11H13V13H6V16L1 12L6 8V11Z"></path>
-        </svg>
+          <button
+            onclick="logout()"
+            class="flex items-center gap-1 text-gray-500 hover:text-red-700 px-2 py-1 mt-2 -ml-2 transition"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              class="w-4 h-4"
+            >
+              <path
+                d="M4 18H6V20H18V4H6V6H4V3C4 2.44772 4.44772 2 5 2H19C19.5523 2 20 2.44772 20 3V21C20 21.5523 19.5523 22 19 22H5C4.44772 22 4 21.5523 4 21V18ZM6 11H13V13H6V16L1 12L6 8V11Z"
+              ></path>
+            </svg>
 
-        Logout
-        </button>
-
+            Logout
+          </button>
         </div>
 
         <!-- ACTION BUTTONS -->
         <div class="flex gap-3">
-          <button onclick="downloadCalendar()" class="flex items-center gap-1 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 rounded-lg shadow">
-            
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
-            <path d="M2 4C2 3.44772 2.44772 3 3 3H21C21.5523 3 22 3.44772 22 4V20C22 20.5523 21.5523 21 21 21H3C2.44772 21 2 20.5523 2 20V4ZM4 19H20V9H4V19ZM11 13H6V17H11V13Z"></path>
+          <button
+            onclick="downloadCalendar()"
+            class="flex items-center gap-1 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 rounded-lg shadow"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              class="w-5 h-5"
+            >
+              <path
+                d="M2 4C2 3.44772 2.44772 3 3 3H21C21.5523 3 22 3.44772 22 4V20C22 20.5523 21.5523 21 21 21H3C2.44772 21 2 20.5523 2 20V4ZM4 19H20V9H4V19ZM11 13H6V17H11V13Z"
+              ></path>
             </svg>
-            
+
             Download Calendar
           </button>
 
-          <button onclick="openModal()" class="flex items-center gap-1 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow">
-            
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
-            <path d="M11 11V5H13V11H19V13H13V19H11V13H5V11H11Z"></path>
+          <button
+            onclick="openModal()"
+            class="flex items-center gap-1 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              class="w-5 h-5"
+            >
+              <path d="M11 11V5H13V11H19V13H13V19H11V13H5V11H11Z"></path>
             </svg>
 
             Add Document
           </button>
         </div>
-
       </div>
 
       <!-- STATS BADGES -->
-      <div class="flex gap-4">
-         {% include "components/_stats.html" %}
-      </div>
+      <div class="flex gap-4">{% include "components/_stats.html" %}</div>
 
       <!-- SEARCH + FILTERS -->
       <div class="flex flex-wrap gap-3 mb-4">
         {% include "components/_filters.html" %}
       </div>
-
     </div>
   </header>
 
-    <main class="max-w-7xl mx-auto px-6 py-6 hidden" id="archivedSection">
-        <h2 class="text-lg font-semibold text-gray-700 mb-4">Archived Documents</h2>
-        <div id="archivedList"
-            class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        </div>
-    </main>
-
+  <main class="max-w-7xl mx-auto px-6 py-6 hidden" id="archivedSection">
+    <h2 class="text-lg font-semibold text-gray-700 mb-4">Archived Documents</h2>
+    <div
+      id="archivedList"
+      class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+    ></div>
+  </main>
 
   <!-- DOCUMENT GRID -->
   <main class="max-w-7xl mx-auto px-6 py-6" id="documentSection">
-     <h2 class="text-lg font-semibold text-gray-700 mb-4">Active Documents</h2>
-    <div id="documentList"
-         class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-    </div>
+    <h2 class="text-lg font-semibold text-gray-700 mb-4">Active Documents</h2>
+    <div
+      id="documentList"
+      class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+    ></div>
   </main>
-
 </div>
 
-
 <!-- BACKDROP -->
-<div id="docModalBackdrop"
-     class="fixed inset-0 bg-black/50 hidden z-40"
-></div>
+<div id="docModalBackdrop" class="fixed inset-0 bg-black/50 hidden z-40"></div>
 
 <!-- MODAL -->
 
-<div id="docModal" class="fixed inset-0 z-50 flex items-center justify-center hidden">
+<div
+  id="docModal"
+  class="fixed inset-0 z-50 flex items-center justify-center hidden"
+>
   <div id="modalContent" class="w-full max-w-lg">
-      {% include "components/_document_form.html" %}
+    {% include "components/_document_form.html" %}
   </div>
 </div>
 
-<div id="editModal" class="fixed inset-0 z-50 flex items-center justify-center hidden">
+<div
+  id="editModal"
+  class="fixed inset-0 z-50 flex items-center justify-center hidden"
+>
   <div id="editmodalContent" class="w-full max-w-lg">
-      {% include "components/_document_edit.html" %}
+    {% include "components/_document_edit.html" %}
   </div>
 </div>
 
 <!-- PAGINATION CONTROLS -->
-<div id="paginationContainer" class="flex items-center justify-center gap-2 mb-6 select-none">
-  
-  <button id="prevPageBtn" class="px-3 py-1.5 shadow-sm rounded-lg text-gray-600 bg-white hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed">
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">  
-        <path d="M10.8284 12.0007L15.7782 16.9504L14.364 18.3646L8 12.0007L14.364 5.63672L15.7782 7.05093L10.8284 12.0007Z"></path>
+<div
+  id="paginationContainer"
+  class="flex items-center justify-center gap-2 mb-6 select-none"
+>
+  <button
+    id="prevPageBtn"
+    class="px-3 py-1.5 shadow-sm rounded-lg text-gray-600 bg-white hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
+  >
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      class="w-5 h-5"
+    >
+      <path
+        d="M10.8284 12.0007L15.7782 16.9504L14.364 18.3646L8 12.0007L14.364 5.63672L15.7782 7.05093L10.8284 12.0007Z"
+      ></path>
     </svg>
   </button>
 
   <span id="pageIndicator" class="px-3 py-1 text-gray-700 font-medium"></span>
 
-  <button id="nextPageBtn" class="px-3 py-1.5 shadow-sm rounded-lg text-gray-600 bg-white hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed">
-     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
-          <path d="M13.1717 12.0007L8.22192 7.05093L9.63614 5.63672L16.0001 12.0007L9.63614 18.3646L8.22192 16.9504L13.1717 12.0007Z"></path>
-     </svg>
+  <button
+    id="nextPageBtn"
+    class="px-3 py-1.5 shadow-sm rounded-lg text-gray-600 bg-white hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
+  >
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      class="w-5 h-5"
+    >
+      <path
+        d="M13.1717 12.0007L8.22192 7.05093L9.63614 5.63672L16.0001 12.0007L9.63614 18.3646L8.22192 16.9504L13.1717 12.0007Z"
+      ></path>
+    </svg>
   </button>
-
 </div>
-

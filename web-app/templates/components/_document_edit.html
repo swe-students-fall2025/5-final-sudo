@@ -1,150 +1,187 @@
-<div class="bg-white rounded-xl shadow-xl w-full max-w-lg p-6 relative"
-       onclick="event.stopPropagation()">
+<div
+  class="bg-white rounded-xl shadow-xl w-full max-w-lg p-6 relative"
+  onclick="event.stopPropagation()"
+>
+  <!-- Close -->
+  <button
+    onclick="closeEditModal()"
+    type="button"
+    class="absolute right-4 top-4 p-2 rounded-full text-gray-400 hover:text-gray-600 transition"
+  >
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      class="w-5 h-5"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    >
+      <line x1="18" y1="6" x2="6" y2="18" />
+      <line x1="6" y1="6" x2="18" y2="18" />
+    </svg>
+  </button>
 
-    <!-- Close -->
-    <button onclick="closeEditModal()" type="button"
-            class="absolute right-4 top-4 p-2 rounded-full text-gray-400 hover:text-gray-600 transition">
-      <svg xmlns="http://www.w3.org/2000/svg"
-          class="w-5 h-5"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round">
-        <line x1="18" y1="6" x2="6" y2="18"/>
-        <line x1="6" y1="6" x2="18" y2="18"/>
-      </svg>
-    </button>
+  <h2 class="text-xl font-semibold text-gray-900 mb-2">Edit Document</h2>
+  <p class="text-gray-600 text-sm mb-6">
+    Update details, renew expiry, or archive this document.
+  </p>
 
-    <h2 class="text-xl font-semibold text-gray-900 mb-2">
-      Edit Document
-    </h2>
-    <p class="text-gray-600 text-sm mb-6">
-      Update details, renew expiry, or archive this document.
-    </p>
+  <!-- FORM -->
+  <form id="editForm" class="space-y-5">
+    <input type="hidden" id="edit_id" />
 
-    <!-- FORM -->
-    <form id="editForm" class="space-y-5">
+    <!-- Expiry (Primary Action) -->
+    <div class="space-y-1">
+      <label class="text-sm font-medium">Expiry Date</label>
+      <input
+        id="edit_expiry"
+        type="date"
+        class="w-full bg-gray-100 rounded-lg px-3 py-2"
+      />
+    </div>
 
-      <input type="hidden" id="edit_id">
+    <!-- Notes (Context) -->
+    <div class="space-y-1">
+      <label class="text-sm font-medium">Notes (optional)</label>
+      <textarea
+        id="edit_notes"
+        class="w-full bg-gray-100 rounded-lg px-3 py-2"
+        rows="3"
+      ></textarea>
+    </div>
 
-      <!-- Expiry (Primary Action) -->
-      <div class="space-y-1">
-        <label class="text-sm font-medium">Expiry Date</label>
-        <input id="edit_expiry"
-               type="date"
-               class="w-full bg-gray-100 rounded-lg px-3 py-2">
-      </div>
-
-       <!-- Notes (Context) -->
-      <div class="space-y-1">
-        <label class="text-sm font-medium">Notes (optional)</label>
-        <textarea id="edit_notes"
-                  class="w-full bg-gray-100 rounded-lg px-3 py-2"
-                  rows="3"></textarea>
-      </div>
-
-      <!-- Advanced: Label, Lead Time, Importance -->
-      <details class="group">
-        <summary class="list-none flex flex-wrap items-center cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 rounded group-open:mb-2">
-            <h3 class="flex flex-1 p-2 font-semibold text-gray-700">Advanced Options</h3>
-            <div class="flex w-10 items-center justify-center">
-                <div class="border-8 border-transparent border-l-gray-600 ml-2 group-open:rotate-90 transition-transform origin-center"></div>
-            </div>
-        </summary>
-        
-        <div class="space-y-4 pt-2 pl-2 border-l-2 border-gray-100">
-            <!-- Name -->
-            <div class="space-y-1">
-                <label class="block text-sm font-medium">Document Name</label>
-                <input id="edit_name"
-                    autocomplete="off"
-                    class="w-full bg-gray-100 rounded-lg px-3 py-2">
-            </div>
-
-            <!-- Label -->
-            <div class="space-y-1">
-                <label class="block text-sm font-medium">Label (optional)</label>
-                <input id="edit_label"
-                    list="labelOptions"
-                    autocomplete="off"
-                    class="w-full bg-gray-100 rounded-lg px-3 py-2">
-            </div>
-
-            <!-- Lead Time -->
-            <div class="space-y-1">
-             <label class="text-sm font-medium">Lead Time (Days)</label>
-             <input id="edit_lead"
-                    type="number"
-                    class="w-full bg-gray-100 rounded-lg px-3 py-2">
-            </div>
-
-            <!-- Importance -->
-            <div class="space-y-1">
-                <label class="text-sm font-medium">Importance</label>
-                <div class="custom-select relative w-full z-10" onclick="event.stopPropagation()">
-                    <button type="button"
-                    class="select-trigger w-full flex justify-between items-center bg-gray-100 rounded-lg px-3 py-2 text-sm"
-                    onclick="event.stopPropagation()">
-                    <span class="select-value text-gray-700">Medium</span>
-                    <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" stroke-width="2"
-                        viewBox="0 0 24 24">
-                        <polyline points="6 9 12 15 18 9"></polyline>
-                    </svg>
-                    </button>
-
-                    <div class="dropdown-content p-2 absolute left-0 right-0 mt-2 hidden z-50 bg-white shadow rounded-md"
-                        onclick="event.stopPropagation()">
-                    <div class="dropdown-option" data-value="Low">Low</div>
-                    <div class="dropdown-option" data-value="Medium">Medium</div>
-                    <div class="dropdown-option" data-value="High">High</div>
-                    <div class="dropdown-option" data-value="Critical">Critical</div>
-                    </div>
-                
-                    <input type="hidden" id="edit_importance" name="importance" value="Medium" class="select-input">
-                </div>
-            </div>
+    <!-- Advanced: Label, Lead Time, Importance -->
+    <details class="group">
+      <summary
+        class="list-none flex flex-wrap items-center cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 rounded group-open:mb-2"
+      >
+        <h3 class="flex flex-1 p-2 font-semibold text-gray-700">
+          Advanced Options
+        </h3>
+        <div class="flex w-10 items-center justify-center">
+          <div
+            class="border-8 border-transparent border-l-gray-600 ml-2 group-open:rotate-90 transition-transform origin-center"
+          ></div>
         </div>
-      </details>
+      </summary>
 
+      <div class="space-y-4 pt-2 pl-2 border-l-2 border-gray-100">
+        <!-- Name -->
+        <div class="space-y-1">
+          <label class="block text-sm font-medium">Document Name</label>
+          <input
+            id="edit_name"
+            autocomplete="off"
+            class="w-full bg-gray-100 rounded-lg px-3 py-2"
+          />
+        </div>
 
+        <!-- Label -->
+        <div class="space-y-1">
+          <label class="block text-sm font-medium">Label (optional)</label>
+          <input
+            id="edit_label"
+            list="labelOptions"
+            autocomplete="off"
+            class="w-full bg-gray-100 rounded-lg px-3 py-2"
+          />
+        </div>
 
+        <!-- Lead Time -->
+        <div class="space-y-1">
+          <label class="text-sm font-medium">Lead Time (Days)</label>
+          <input
+            id="edit_lead"
+            type="number"
+            class="w-full bg-gray-100 rounded-lg px-3 py-2"
+          />
+        </div>
 
-      <!-- ACTION BUTTONS -->
-      <div class="flex flex-col gap-3 pt-4">
+        <!-- Importance -->
+        <div class="space-y-1">
+          <label class="text-sm font-medium">Importance</label>
+          <div
+            class="custom-select relative w-full z-10"
+            onclick="event.stopPropagation()"
+          >
+            <button
+              type="button"
+              class="select-trigger w-full flex justify-between items-center bg-gray-100 rounded-lg px-3 py-2 text-sm"
+              onclick="event.stopPropagation()"
+            >
+              <span class="select-value text-gray-700">Medium</span>
+              <svg
+                class="w-4 h-4 text-gray-500"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+              >
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </button>
 
-        <!-- Renew/save -->
-        <button type="submit"
-                class="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-lg py-2 font-medium">
-          Save Changes
+            <div
+              class="dropdown-content p-2 absolute left-0 right-0 mt-2 hidden z-50 bg-white shadow rounded-md"
+              onclick="event.stopPropagation()"
+            >
+              <div class="dropdown-option" data-value="Low">Low</div>
+              <div class="dropdown-option" data-value="Medium">Medium</div>
+              <div class="dropdown-option" data-value="High">High</div>
+              <div class="dropdown-option" data-value="Critical">Critical</div>
+            </div>
+
+            <input
+              type="hidden"
+              id="edit_importance"
+              name="importance"
+              value="Medium"
+              class="select-input"
+            />
+          </div>
+        </div>
+      </div>
+    </details>
+
+    <!-- ACTION BUTTONS -->
+    <div class="flex flex-col gap-3 pt-4">
+      <!-- Renew/save -->
+      <button
+        type="submit"
+        class="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-lg py-2 font-medium"
+      >
+        Save Changes
+      </button>
+
+      <!-- Archive / unarchive / delete -->
+      <div class="flex gap-3">
+        <button
+          type="button"
+          id="archiveBtn"
+          onclick="console.log('clicked'); archiveCurrentDoc()"
+          class="flex-1 bg-yellow-100 text-yellow-700 border border-yellow-300 rounded-lg py-2 hover:bg-yellow-200"
+        >
+          Archive
         </button>
 
-        <!-- Archive / unarchive / delete -->
-        <div class="flex gap-3">
+        <button
+          type="button"
+          id="unarchiveBtn"
+          onclick="unarchiveCurrentDoc()"
+          class="hidden flex-1 bg-green-100 text-green-700 border border-green-300 rounded-lg py-2 hover:bg-green-200"
+        >
+          Unarchive
+        </button>
 
-          <button type="button"
-                  id="archiveBtn"
-                  onclick="console.log('clicked'); archiveCurrentDoc()"
-                  class="flex-1 bg-yellow-100 text-yellow-700 border border-yellow-300 rounded-lg py-2 hover:bg-yellow-200">
-            Archive
-          </button>
-
-          <button type="button"
-                  id="unarchiveBtn"
-                  onclick="unarchiveCurrentDoc()"
-                  class="hidden flex-1 bg-green-100 text-green-700 border border-green-300 rounded-lg py-2 hover:bg-green-200">
-            Unarchive
-          </button>
-
-          <button type="button"
-                  onclick="deleteCurrentDoc()"
-                  class="flex-1 bg-red-100 text-red-700 border border-red-300 rounded-lg py-2 hover:bg-red-200">
-            Delete
-          </button>
-
-        </div>
-
+        <button
+          type="button"
+          onclick="deleteCurrentDoc()"
+          class="flex-1 bg-red-100 text-red-700 border border-red-300 rounded-lg py-2 hover:bg-red-200"
+        >
+          Delete
+        </button>
       </div>
-
-    </form>
-  </div>
+    </div>
+  </form>
+</div>

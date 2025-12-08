@@ -1,191 +1,253 @@
-
-<div class="bg-white rounded-xl shadow-xl w-full max-w-lg p-6 relative"
-     onclick="event.stopPropagation()">
-
+<div
+  class="bg-white rounded-xl shadow-xl w-full max-w-lg p-6 relative"
+  onclick="event.stopPropagation()"
+>
   <!-- Close button -->
-  <button onclick="closeModal()"
-          class="absolute right-4 top-4 p-2 rounded-full text-gray-400 hover:text-gray-600 transition">
-    <svg xmlns="http://www.w3.org/2000/svg"
-        class="w-5 h-5"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-        stroke-linecap="round"
-        stroke-linejoin="round">
-      <line x1="18" y1="6" x2="6" y2="18"/>
-      <line x1="6" y1="6" x2="18" y2="18"/>
+  <button
+    onclick="closeModal()"
+    class="absolute right-4 top-4 p-2 rounded-full text-gray-400 hover:text-gray-600 transition"
+  >
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      class="w-5 h-5"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    >
+      <line x1="18" y1="6" x2="6" y2="18" />
+      <line x1="6" y1="6" x2="18" y2="18" />
     </svg>
   </button>
 
   <!-- HEADER -->
   <h2 class="text-xl font-semibold text-gray-900 mb-2">Add New Document</h2>
   <p class="text-gray-600 text-sm mb-6">
-    Track passports, visas, memberships, warranties, and anything with an expiry date.
+    Track passports, visas, memberships, warranties, and anything with an expiry
+    date.
   </p>
 
   <!-- FORM -->
   <form id="addForm" class="space-y-5">
-
     <!-- Name -->
     <div class="space-y-1">
-      <label for="name" class="block text-sm font-medium">Document Name (optional)</label>
-      <input id="name"
-             autocomplete="off"
-             class="w-full bg-gray-100 rounded-lg px-3 py-2"
-             placeholder="e.g. My Esports Membership">
-      <p class="text-xs text-gray-500">Auto-generated from type if left blank</p>
+      <label for="name" class="block text-sm font-medium"
+        >Document Name (optional)</label
+      >
+      <input
+        id="name"
+        autocomplete="off"
+        class="w-full bg-gray-100 rounded-lg px-3 py-2"
+        placeholder="e.g. My Esports Membership"
+      />
+      <p class="text-xs text-gray-500">
+        Auto-generated from type if left blank
+      </p>
     </div>
 
     <!-- Document Type -->
     <div class="space-y-1">
-      <label for="doc_type" class="block text-sm font-medium">Document Type *</label>
-     <div class="custom-select relative">
-  <!-- Trigger -->
-  <button 
-    type="button"
-    class="select-trigger w-full flex justify-between items-center bg-gray-100 rounded-lg px-3 py-2 text-left"
-    onclick="event.stopPropagation()"
-  >
-    <span class="select-value text-gray-500">Select document type</span>
-    <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-      <polyline points="6 9 12 15 18 9"/>
-    </svg>
-  </button>
+      <label for="doc_type" class="block text-sm font-medium"
+        >Document Type *</label
+      >
+      <div class="custom-select relative">
+        <!-- Trigger -->
+        <button
+          type="button"
+          class="select-trigger w-full flex justify-between items-center bg-gray-100 rounded-lg px-3 py-2 text-left"
+          onclick="event.stopPropagation()"
+        >
+          <span class="select-value text-gray-500">Select document type</span>
+          <svg
+            class="w-4 h-4 text-gray-500"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+          >
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </button>
 
-  <!-- Dropdown Menu -->
-  <div 
-    class="dropdown-content absolute p-2 mt-2 w-full bg-white rounded-lg shadow-lg hidden z-50 max-h-64 overflow-y-auto border border-gray-200"
-  >
-    <!-- options -->
-    <div class="dropdown-option" data-value="passport">Passport</div>
-    <div class="dropdown-option" data-value="visa">Visa</div>
-    <div class="dropdown-option" data-value="driver_license">Driver’s License</div>
-    <div class="dropdown-option" data-value="permit">Permit</div>
-    <div class="dropdown-option" data-value="warranty">Warranty</div>
-    <div class="dropdown-option" data-value="insurance">Insurance</div>
-    <div class="dropdown-option" data-value="membership">Membership</div>
-    <div class="dropdown-option" data-value="certification">Certification</div>
-    <div class="dropdown-option" data-value="subscription">Subscription</div>
-    <div class="dropdown-option" data-value="car_registration">Car Registration</div>
-    <div class="dropdown-option" data-value="lease">Lease</div>
-    <div class="dropdown-option" data-value="other">Other</div>
-  </div>
+        <!-- Dropdown Menu -->
+        <div
+          class="dropdown-content absolute p-2 mt-2 w-full bg-white rounded-lg shadow-lg hidden z-50 max-h-64 overflow-y-auto border border-gray-200"
+        >
+          <!-- options -->
+          <div class="dropdown-option" data-value="passport">Passport</div>
+          <div class="dropdown-option" data-value="visa">Visa</div>
+          <div class="dropdown-option" data-value="driver_license">
+            Driver’s License
+          </div>
+          <div class="dropdown-option" data-value="permit">Permit</div>
+          <div class="dropdown-option" data-value="warranty">Warranty</div>
+          <div class="dropdown-option" data-value="insurance">Insurance</div>
+          <div class="dropdown-option" data-value="membership">Membership</div>
+          <div class="dropdown-option" data-value="certification">
+            Certification
+          </div>
+          <div class="dropdown-option" data-value="subscription">
+            Subscription
+          </div>
+          <div class="dropdown-option" data-value="car_registration">
+            Car Registration
+          </div>
+          <div class="dropdown-option" data-value="lease">Lease</div>
+          <div class="dropdown-option" data-value="other">Other</div>
+        </div>
 
-  <!-- Hidden input so backend still receives a value -->
-  <input type="hidden" class="select-input" id="doc_type" name="doc_type">
-</div>
+        <!-- Hidden input so backend still receives a value -->
+        <input
+          type="hidden"
+          class="select-input"
+          id="doc_type"
+          name="doc_type"
+        />
+      </div>
     </div>
-
-
 
     <!-- Expiry -->
     <div class="space-y-1">
       <label for="expiry_date" class="text-sm font-medium">Expiry Date *</label>
-      <input id="expiry_date"
-             type="date"
-             class="w-full bg-gray-100 rounded-lg px-3 py-2"
-             required>
+      <input
+        id="expiry_date"
+        type="date"
+        class="w-full bg-gray-100 rounded-lg px-3 py-2"
+        required
+      />
     </div>
 
     <!-- Label -->
     <div class="space-y-1">
-      <label for="label" class="block text-sm font-medium">Label (optional)</label>
-      <input id="label"
-             list="labelOptions"
-             autocomplete="off"
-             class="w-full bg-gray-100 rounded-lg px-3 py-2"
-             placeholder="Select existing or type new...">
-      <p class="text-xs text-gray-500">Group documents together (e.g. Work, Family)</p>
+      <label for="label" class="block text-sm font-medium"
+        >Label (optional)</label
+      >
+      <input
+        id="label"
+        list="labelOptions"
+        autocomplete="off"
+        class="w-full bg-gray-100 rounded-lg px-3 py-2"
+        placeholder="Select existing or type new..."
+      />
+      <p class="text-xs text-gray-500">
+        Group documents together (e.g. Work, Family)
+      </p>
       <datalist id="labelOptions"></datalist>
     </div>
 
     <!-- Notes -->
     <div class="space-y-1">
-      <label for="notes" class="block text-sm font-medium">Notes (optional)</label>
-      <textarea id="notes"
-                class="w-full bg-gray-100 rounded-lg px-3 py-2"
-                placeholder="Links, reference numbers, renewal notes..."></textarea>
+      <label for="notes" class="block text-sm font-medium"
+        >Notes (optional)</label
+      >
+      <textarea
+        id="notes"
+        class="w-full bg-gray-100 rounded-lg px-3 py-2"
+        placeholder="Links, reference numbers, renewal notes..."
+      ></textarea>
     </div>
 
     <!-- Advanced Settings -->
     <details class="group border border-gray-200 rounded-xl relative">
-
-      <summary class="flex items-center gap-2 px-4 py-3 text-sm text-gray-700 cursor-pointer select-none hover:bg-gray-50">
-        <svg class="w-4 h-4 text-gray-600 transition-transform duration-200 group-open:rotate-90"
-             fill="none" stroke="currentColor" stroke-width="2"
-             viewBox="0 0 24 24">
-          <polyline points="9 6 15 12 9 18"/>
+      <summary
+        class="flex items-center gap-2 px-4 py-3 text-sm text-gray-700 cursor-pointer select-none hover:bg-gray-50"
+      >
+        <svg
+          class="w-4 h-4 text-gray-600 transition-transform duration-200 group-open:rotate-90"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+        >
+          <polyline points="9 6 15 12 9 18" />
         </svg>
         <span>Advanced Settings</span>
       </summary>
 
       <div class="px-4 pt-4 pb-4 space-y-4 border-t border-gray-100">
-
-
         <!-- OPTIONAL Importance -->
-    <div class="space-y-1">
-    <label class="text-sm font-medium">Importance</label>
+        <div class="space-y-1">
+          <label class="text-sm font-medium">Importance</label>
 
-    <div class="custom-select relative w-full">
+          <div class="custom-select relative w-full">
+            <!-- Trigger -->
+            <button
+              type="button"
+              class="select-trigger w-full flex justify-between items-center bg-gray-100 rounded-lg px-3 py-2 text-sm"
+              onclick="event.stopPropagation()"
+            >
+              <span class="select-value text-gray-700">Auto (recommended)</span>
+              <svg
+                class="w-4 h-4 text-gray-500"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+              >
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </button>
 
-        <!-- Trigger -->
-        <button type="button"
-            class="select-trigger w-full flex justify-between items-center bg-gray-100 rounded-lg px-3 py-2 text-sm"
-            onclick="event.stopPropagation()"
-        >
-        <span class="select-value text-gray-700">Auto (recommended)</span>
-        <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" stroke-width="2"
-            viewBox="0 0 24 24">
-            <polyline points="6 9 12 15 18 9"></polyline>
-        </svg>
-        </button>
+            <!-- Dropdown -->
+            <div
+              class="dropdown-content p-2 absolute left-0 right-0 mt-2 hidden z-50"
+            >
+              <div class="dropdown-option" data-value="">
+                Auto (recommended)
+              </div>
+              <div class="dropdown-option" data-value="low">Low</div>
+              <div class="dropdown-option" data-value="medium">Medium</div>
+              <div class="dropdown-option" data-value="high">High</div>
+              <div class="dropdown-option" data-value="critical">Critical</div>
+            </div>
 
-        <!-- Dropdown -->
-        <div class="dropdown-content p-2 absolute left-0 right-0 mt-2 hidden z-50">
-        <div class="dropdown-option" data-value="">Auto (recommended)</div>
-        <div class="dropdown-option" data-value="low">Low</div>
-        <div class="dropdown-option" data-value="medium">Medium</div>
-        <div class="dropdown-option" data-value="high">High</div>
-        <div class="dropdown-option" data-value="critical">Critical</div>
+            <!-- Hidden input (required for backend POST) -->
+            <input
+              type="hidden"
+              id="importance"
+              name="importance"
+              class="select-input"
+              value=""
+            />
+          </div>
+
+          <p class="text-xs text-gray-500">
+            Overrides backend defaults for special cases.
+          </p>
         </div>
-
-        <!-- Hidden input (required for backend POST) -->
-        <input type="hidden" id="importance" name="importance" class="select-input" value="">
-    </div>
-
-    <p class="text-xs text-gray-500">
-        Overrides backend defaults for special cases.
-    </p>
-    </div>
 
         <!-- OPTIONAL Lead time -->
         <div class="space-y-1">
-          <label for="lead_time" class="text-sm font-medium">Lead Time (days)</label>
-          <input id="lead_time"
-                 type="number"
-                 class="w-full bg-gray-100 rounded-lg px-3 py-2"
-                 placeholder="Auto (recommended)">
+          <label for="lead_time" class="text-sm font-medium"
+            >Lead Time (days)</label
+          >
+          <input
+            id="lead_time"
+            type="number"
+            class="w-full bg-gray-100 rounded-lg px-3 py-2"
+            placeholder="Auto (recommended)"
+          />
         </div>
-
-
-
       </div>
     </details>
 
     <!-- Submit & Cancel Buttons -->
     <div class="flex gap-3 pt-2">
-      <button type="submit"
-              class="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg py-2">
+      <button
+        type="submit"
+        class="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg py-2"
+      >
         Add Document
       </button>
 
-      <button type="button"
-              onclick="closeModal()"
-              class="border border-gray-300 rounded-lg px-5 py-2 text-gray-700 hover:bg-gray-100">
+      <button
+        type="button"
+        onclick="closeModal()"
+        class="border border-gray-300 rounded-lg px-5 py-2 text-gray-700 hover:bg-gray-100"
+      >
         Cancel
       </button>
     </div>
-
   </form>
-
 </div>
