@@ -1,27 +1,39 @@
 <div class="w-full flex flex-wrap items-center gap-3 mt-4">
-
   <!-- SEARCH BAR (FULL WIDTH PRIORITY) -->
   <div class="relative flex-grow min-w-[300px]">
     <span class="absolute left-3 top-1/2 -translate-y-1/2">
-      <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" stroke-width="2"
-           viewBox="0 0 24 24">
+      <svg
+        class="w-4 h-4 text-gray-400"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        viewBox="0 0 24 24"
+      >
         <circle cx="11" cy="11" r="8"></circle>
         <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
       </svg>
     </span>
 
-    <input id="searchInput"
-           placeholder="Search documents..."
-           class="w-full bg-gray-100 rounded-lg pl-10 pr-3 py-2 text-sm
-                  focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+    <input
+      id="searchInput"
+      placeholder="Search documents..."
+      class="w-full bg-gray-100 rounded-lg pl-10 pr-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+    />
   </div>
 
   <!-- TYPE SELECT -->
   <div id="filterTypeSelect" class="custom-select relative w-[180px]">
-    <button class="select-trigger w-full flex justify-between items-center bg-gray-100 rounded-lg px-3 py-2 text-sm">
+    <button
+      class="select-trigger w-full flex justify-between items-center bg-gray-100 rounded-lg px-3 py-2 text-sm"
+    >
       <span class="select-value text-gray-700">All Types</span>
-      <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" stroke-width="2"
-           viewBox="0 0 24 24">
+      <svg
+        class="w-4 h-4 text-gray-400"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        viewBox="0 0 24 24"
+      >
         <polyline points="6 9 12 15 18 9"></polyline>
       </svg>
     </button>
@@ -30,15 +42,22 @@
       <div class="dropdown-option" data-value="all">All Types</div>
     </div>
 
-    <input type="hidden" class="select-input" id="filterType" value="all">
+    <input type="hidden" class="select-input" id="filterType" value="all" />
   </div>
 
   <!-- IMPORTANCE SELECT -->
   <div id="filterImportanceSelect" class="custom-select relative w-[180px]">
-    <button class="select-trigger w-full flex justify-between items-center bg-gray-100 rounded-lg px-3 py-2 text-sm">
+    <button
+      class="select-trigger w-full flex justify-between items-center bg-gray-100 rounded-lg px-3 py-2 text-sm"
+    >
       <span class="select-value text-gray-700">All Risk Levels</span>
-      <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" stroke-width="2"
-           viewBox="0 0 24 24">
+      <svg
+        class="w-4 h-4 text-gray-400"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        viewBox="0 0 24 24"
+      >
         <polyline points="6 9 12 15 18 9"></polyline>
       </svg>
     </button>
@@ -51,17 +70,24 @@
       <div class="dropdown-option" data-value="Low">Low</div>
     </div>
 
-    <input type="hidden" class="select-input" id="filterImportance" value="all">
+    <input
+      type="hidden"
+      class="select-input"
+      id="filterImportance"
+      value="all"
+    />
   </div>
 
   <!-- ARCHIVE BUTTON -->
-  <button id="archiveToggleBtn"
-          class="flex items-center gap-2 px-4 py-2 rounded-lg border text-sm transition
-                 bg-white text-gray-700 border-gray-300 hover:bg-gray-100">
+  <button
+    id="archiveToggleBtn"
+    class="flex items-center gap-2 px-4 py-2 rounded-lg border text-sm transition bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
+  >
     <span id="archiveBtnText">Show Archived</span>
-    <span id="archiveBadge"
-          class="hidden ml-1 px-2 py-0.5 bg-gray-200 text-gray-700 rounded-full text-xs">
+    <span
+      id="archiveBadge"
+      class="hidden ml-1 px-2 py-0.5 bg-gray-200 text-gray-700 rounded-full text-xs"
+    >
     </span>
   </button>
-
 </div>
