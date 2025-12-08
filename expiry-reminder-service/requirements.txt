@@ -2,3 +2,4 @@ pymongo
 
 pytest
 pytest-cov
+tzdata

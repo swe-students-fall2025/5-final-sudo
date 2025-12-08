@@ -6,6 +6,7 @@ from flask import Blueprint, jsonify, request
 from flask_login import login_user, logout_user, current_user, login_required
 from pymongo.errors import DuplicateKeyError
 from werkzeug.security import check_password_hash, generate_password_hash
+from bson import ObjectId
 
 from auth_utils import User
 
@@ -24,6 +25,7 @@ def register():
     data = request.get_json() or {}
     email = (data.get("email") or "").strip().lower()
     password = data.get("password") or ""
+    timezone_val = (data.get("timezone") or "UTC").strip()
 
     if not email or "@" not in email:
         return jsonify({"error": "invalid_email"}), 400
@@ -36,6 +38,7 @@ def register():
     user_doc = {
         "email": email,
         "password_hash": generate_password_hash(password),
+        "timezone": timezone_val,
         "created_at": datetime.now(timezone.utc),
     }
 
@@ -47,7 +50,7 @@ def register():
     user = User(user_id=str(res.inserted_id), email=email)
     login_user(user)
 
-    return jsonify({"id": user.id, "email": user.email}), 201
+    return jsonify({"id": user.id, "email": user.email, "timezone": timezone_val}), 201
 
 
 @bp.post("/login")
@@ -68,7 +71,13 @@ def login():
     user = User(user_id=str(user_doc["_id"]), email=user_doc["email"])
     login_user(user)
 
-    return jsonify({"id": user.id, "email": user.email})
+    return jsonify(
+        {
+            "id": user.id,
+            "email": user.email,
+            "timezone": user_doc.get("timezone", "UTC"),
+        }
+    )
 
 
 @bp.post("/logout")
@@ -81,10 +90,48 @@ def logout():
 @bp.get("/me")
 def me():
     if current_user.is_authenticated:
+        # Fetch fresh data to get timezone
+        from main import get_db
+
+        db = get_db()
+        try:
+            uid = ObjectId(current_user.id)
+            user_doc = db.users.find_one({"_id": uid})
+        except Exception:
+            user_doc = None
+
+        tz = (user_doc.get("timezone") if user_doc else None) or "UTC"
+
         return jsonify(
             {
                 "logged_in": True,
-                "user": {"id": current_user.id, "email": current_user.email},
+                "user": {
+                    "id": current_user.id,
+                    "email": current_user.email,
+                    "timezone": tz,
+                },
             }
         )
     return jsonify({"logged_in": False}), 200
+
+
+@bp.patch("/me")
+@login_required
+def update_me():
+    from main import get_db
+
+    data = request.get_json() or {}
+    timezone_val = (data.get("timezone") or "").strip()
+
+    if not timezone_val:
+        return jsonify({"error": "missing_timezone"}), 400
+
+    db = get_db()
+    try:
+        uid = ObjectId(current_user.id)
+    except Exception:
+        return jsonify({"error": "invalid_user_id"}), 400
+
+    db.users.update_one({"_id": uid}, {"$set": {"timezone": timezone_val}})
+
+    return jsonify({"message": "updated", "timezone": timezone_val}), 200

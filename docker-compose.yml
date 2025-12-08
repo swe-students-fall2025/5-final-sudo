@@ -1,47 +1,41 @@
 services:
   mongodb:
     image: mongo:7
-    container_name: dockeeper-mongodb
-    ports:
-      - "27017:27017"
     volumes:
       - mongodb_data:/data/db
     environment:
       - MONGO_INITDB_DATABASE=dockeeper
-    healthcheck:
-      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   web-app:
     build:
       context: .
       dockerfile: web-app/Dockerfile
-    container_name: dockeeper-web-app
+    env_file: .env
     ports:
       - "8000:8000"
     environment:
-      - MONGO_URI=mongodb://mongodb:27017
-      - MONGO_DB_NAME=dockeeper
-      - SECRET_KEY=${SECRET_KEY:-dev-change-me}
+      - MONGO_URI=${MONGO_URI:-mongodb://mongodb:27017}
+      - MONGO_DB_NAME=${MONGO_DB_NAME:-dockeeper}
+      - SECRET_KEY=${SECRET_KEY}
     depends_on:
-      mongodb:
-        condition: service_healthy
+      - mongodb
     restart: unless-stopped
 
   reminder-service:
     build:
       context: ./expiry-reminder-service
       dockerfile: Dockerfile
-    container_name: dockeeper-reminder-service
+    env_file: .env
     environment:
-      - MONGO_URI=mongodb://mongodb:27017
-      - MONGO_DB_NAME=dockeeper
-      - REMINDER_INTERVAL_SECONDS=60
+      - MONGO_URI=${MONGO_URI:-mongodb://mongodb:27017}
+      - MONGO_DB_NAME=${MONGO_DB_NAME:-dockeeper}
+      - REMINDER_INTERVAL_SECONDS=${REMINDER_INTERVAL_SECONDS:-60}
+      - EMAIL_MODE=${EMAIL_MODE:-mock}
+      - BREVO_API_KEY=${BREVO_API_KEY:-}
+      - BREVO_SENDER_EMAIL=${BREVO_SENDER_EMAIL:-}
+      - BREVO_SENDER_NAME=${BREVO_SENDER_NAME:-DocKeeper}
     depends_on:
-      mongodb:
-        condition: service_healthy
+      - mongodb
     restart: unless-stopped
 
 volumes:

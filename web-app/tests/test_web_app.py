@@ -8,6 +8,8 @@ PROJECT_ROOT = os.path.dirname(CURRENT_DIR)
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
+# Set env var for testing before import
+os.environ["SECRET_KEY"] = "test-secret"
 from main import app
 
 

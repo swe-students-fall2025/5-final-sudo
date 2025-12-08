@@ -12,7 +12,7 @@ from routers.auth import bp as auth_bp
 APP_NAME = "DocKeeper - Expiry Tracker"
 
 # MongoDB configuration
-MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
+MONGO_URI = os.getenv("MONGO_URI", "mongodb://mongodb:27017")
 MONGO_DB_NAME = os.getenv("MONGO_DB_NAME", "dockeeper")
 
 # Global MongoDB client
@@ -37,7 +37,9 @@ def create_app() -> Flask:
     app = Flask(__name__, template_folder="templates")
 
     # Sessions (required for login cookies)
-    app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "dev-change-me")
+    app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY")
+    if not app.config["SECRET_KEY"]:
+        raise ValueError("No SECRET_KEY set for Flask application")
     app.config["SESSION_COOKIE_HTTPONLY"] = True
     app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 
@@ -68,4 +70,4 @@ def create_app() -> Flask:
 app = create_app()
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8000, debug=True)
+    app.run(host="0.0.0.0", port=8000, debug=False)
