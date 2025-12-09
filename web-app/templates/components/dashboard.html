@@ -127,60 +127,61 @@
 
 <!-- MODAL -->
 
-<div
-  id="docModal"
-  class="fixed inset-0 z-50 flex items-center justify-center hidden"
->
-  <div id="modalContent" class="w-full max-w-lg">
-    {% include "components/_document_form.html" %}
+<div id="docModal" class="fixed inset-0 z-50 overflow-y-auto hidden">
+  <div class="flex min-h-full items-center justify-center p-4">
+    <div id="modalContent" class="w-full max-w-lg">
+      {% include "components/_document_form.html" %}
+    </div>
   </div>
-</div>
 
-<div
-  id="editModal"
-  class="fixed inset-0 z-50 flex items-center justify-center hidden"
->
-  <div id="editmodalContent" class="w-full max-w-lg">
-    {% include "components/_document_edit.html" %}
+  <div id="editModal" class="fixed inset-0 z-50 overflow-y-auto hidden">
+    <div class="flex min-h-full items-center justify-center p-4">
+      <div id="editmodalContent" class="w-full max-w-lg">
+        {% include "components/_document_edit.html" %}
+      </div>
+    </div>
+
+    <!-- PAGINATION CONTROLS -->
+    <div
+      id="paginationContainer"
+      class="flex items-center justify-center gap-2 mb-6 select-none"
+    >
+      <button
+        id="prevPageBtn"
+        class="px-3 py-1.5 shadow-sm rounded-lg text-gray-600 bg-white hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="currentColor"
+          class="w-5 h-5"
+        >
+          <path
+            d="M10.8284 12.0007L15.7782 16.9504L14.364 18.3646L8 12.0007L14.364 5.63672L15.7782 7.05093L10.8284 12.0007Z"
+          ></path>
+        </svg>
+      </button>
+
+      <span
+        id="pageIndicator"
+        class="px-3 py-1 text-gray-700 font-medium"
+      ></span>
+
+      <button
+        id="nextPageBtn"
+        class="px-3 py-1.5 shadow-sm rounded-lg text-gray-600 bg-white hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="currentColor"
+          class="w-5 h-5"
+        >
+          <path
+            d="M13.1717 12.0007L8.22192 7.05093L9.63614 5.63672L16.0001 12.0007L9.63614 18.3646L8.22192 16.9504L13.1717 12.0007Z"
+          ></path>
+        </svg>
+      </button>
+    </div>
   </div>
-</div>
-
-<!-- PAGINATION CONTROLS -->
-<div
-  id="paginationContainer"
-  class="flex items-center justify-center gap-2 mb-6 select-none"
->
-  <button
-    id="prevPageBtn"
-    class="px-3 py-1.5 shadow-sm rounded-lg text-gray-600 bg-white hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
-  >
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      fill="currentColor"
-      class="w-5 h-5"
-    >
-      <path
-        d="M10.8284 12.0007L15.7782 16.9504L14.364 18.3646L8 12.0007L14.364 5.63672L15.7782 7.05093L10.8284 12.0007Z"
-      ></path>
-    </svg>
-  </button>
-
-  <span id="pageIndicator" class="px-3 py-1 text-gray-700 font-medium"></span>
-
-  <button
-    id="nextPageBtn"
-    class="px-3 py-1.5 shadow-sm rounded-lg text-gray-600 bg-white hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
-  >
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      fill="currentColor"
-      class="w-5 h-5"
-    >
-      <path
-        d="M13.1717 12.0007L8.22192 7.05093L9.63614 5.63672L16.0001 12.0007L9.63614 18.3646L8.22192 16.9504L13.1717 12.0007Z"
-      ></path>
-    </svg>
-  </button>
 </div>
