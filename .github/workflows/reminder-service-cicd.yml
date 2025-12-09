@@ -6,10 +6,6 @@ on:
   pull_request:
     branches: [main]
 
-concurrency:
-  group: dockeeper-deploy
-  cancel-in-progress: true
-
 jobs:
   test-build-push-deploy:
     runs-on: ubuntu-latest
