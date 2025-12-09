@@ -433,6 +433,264 @@ def test_run_once_calls_process_digest(monkeypatch):
     assert called["args"][1][0]["risk"] == "CRITICAL"
 
 
+def test_process_digest_cooldown_enforcement(monkeypatch):
+    fixed = datetime(2024, 1, 1, 12, 0, tzinfo=timezone.utc)
+
+    class FakeDateTime(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return fixed if tz is None else fixed.astimezone(tz)
+
+    class FakeCollection:
+        def __init__(self, item):
+            self.item = item
+
+        def find_one(self, _):
+            return self.item
+
+    # naive last_sent triggers tzinfo correction branch
+    state = {"last_digest_at": datetime(2024, 1, 1, 12, 0)}
+    db = SimpleNamespace(
+        users=FakeCollection({"email": "user@test.com"}),
+        notification_state=FakeCollection(state),
+    )
+
+    # Use a MagicMock for update_one to verify it is NOT called
+    db.notification_state.update_one = MagicMock()
+    # Mock brevo_send_email to ensure it's NOT called
+    monkeypatch.setattr(main, "brevo_send_email", MagicMock())
+
+    monkeypatch.setattr(main, "ObjectId", lambda x: x)
+    monkeypatch.setattr(main, "datetime", FakeDateTime)
+
+    # Invoke
+    main.process_digest(db, "507f1f77bcf86cd799439011", [], {})
+
+    # ASSERTIONS for Cooldown
+    db.notification_state.update_one.assert_not_called()
+    main.brevo_send_email.assert_not_called()
+
+
+def test_timezone_day_boundary(monkeypatch, capsys):
+    # UTC is Jan 2, 01:00 AM
+    fake_utc_now = datetime(2024, 1, 2, 1, 0, tzinfo=timezone.utc)
+
+    class FakeDateTime(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return fake_utc_now if tz is None else fake_utc_now.astimezone(tz)
+
+    # We want to ensure the email says "in 2 days" (User perspective), not 1.
+
+    user = {"email": "ny@test.com", "timezone": "America/New_York"}
+    urgent_docs = [
+        {"name": "Doc", "risk": "HIGH", "days_until": 1}
+    ]  # "days_until" passed from run_once is UTC-based (1)
+
+    class FakeCollection:
+        def __init__(self, item):
+            self.item = item
+
+        def find_one(self, _):
+            return self.item
+
+        def update_one(self, *args, **kwargs):
+            pass
+
+    db = SimpleNamespace(
+        users=FakeCollection(user), notification_state=FakeCollection({})
+    )
+
+    monkeypatch.setattr(main, "ObjectId", lambda x: x)
+    monkeypatch.setattr(main, "datetime", FakeDateTime)
+    monkeypatch.setenv("EMAIL_MODE", "mock")
+
+    # Pass the UTC-based days_until=1
+    main.process_digest(db, "uid", urgent_docs, {"HIGH": 1})
+
+    captured = capsys.readouterr().out
+    # Should be adjusted to 2 days because User is 1 day behind UTC roughly
+    assert "Doc (HIGH): in 2 days" in captured
+
+
+def test_process_digest_sorting(monkeypatch, capsys):
+    fixed = datetime(2024, 1, 1, 12, 0, tzinfo=timezone.utc)
+
+    class FakeDateTime(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return fixed
+
+    urgent_docs = [
+        {"name": "LowPrio", "risk": "HIGH", "days_until": 5},
+        {"name": "Urgent", "risk": "CRITICAL", "days_until": 1},
+        {"name": "HighPrio", "risk": "HIGH", "days_until": 2},
+    ]
+
+    # Expectation: Critical first, then High sorted by days (1, 2, 5)
+
+    class FakeCollection:
+        def __init__(self, item):
+            self.item = item
+
+        def find_one(self, _):
+            return self.item
+
+        def update_one(self, *args, **kwargs):
+            pass
+
+    db = SimpleNamespace(
+        users=FakeCollection({"email": "u@t.com"}),
+        notification_state=FakeCollection({}),
+    )
+    monkeypatch.setattr(main, "ObjectId", lambda x: x)
+    monkeypatch.setattr(main, "datetime", FakeDateTime)
+    monkeypatch.setenv("EMAIL_MODE", "mock")
+
+    main.process_digest(db, "uid", urgent_docs, {})
+
+    captured = capsys.readouterr().out
+    lines = [l.strip() for l in captured.splitlines() if " - " in l]
+    # Filter only doc lines
+    doc_lines = [l for l in lines if "(" in l and "):" in l]
+
+    assert "Urgent (CRITICAL)" in doc_lines[0]
+    assert "HighPrio (HIGH)" in doc_lines[1]
+    assert "LowPrio (HIGH)" in doc_lines[2]
+
+
+def test_run_once_aggregates_multiple_users(monkeypatch):
+    fixed = datetime(2024, 1, 1, 12, 0, tzinfo=timezone.utc)
+
+    class FakeDateTime(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return fixed
+
+    docs = [
+        {
+            "_id": 1,
+            "user_id": "u1",
+            "expiry_date": "2024-01-02",
+            "importance": 5,
+        },  # u1 Critical
+        {
+            "_id": 2,
+            "user_id": "u1",
+            "expiry_date": "2024-01-10",
+            "importance": 4,
+        },  # u1 High
+        {
+            "_id": 3,
+            "user_id": "u2",
+            "expiry_date": "2024-01-02",
+            "importance": 5,
+        },  # u2 Critical
+        {
+            "_id": 4,
+            "user_id": "u2",
+            "expiry_date": "2024-05-05",
+            "importance": 2,
+        },  # u2 Low (skip digest)
+    ]
+
+    class FakeCollection:
+        def __init__(self, docs):
+            self.docs = docs
+            self.updates = []
+
+        def find(self, *args, **kwargs):
+            return self.docs
+
+        def update_one(self, *args, **kwargs):
+            self.updates.append(kwargs)
+
+    db = SimpleNamespace(documents=FakeCollection(docs))
+
+    # We mock process_digest to capture what it receives
+    digest_calls = []
+
+    def fake_process_digest(db, uid, docs, risks):
+        digest_calls.append({"uid": uid, "docs": docs, "risks": risks})
+
+    monkeypatch.setattr(main, "get_db", lambda: db)
+    monkeypatch.setattr(
+        main,
+        "compute_risk_level",
+        lambda **kwargs: (
+            "CRITICAL"
+            if kwargs["days_until_expiry"] < 2
+            else ("HIGH" if kwargs["days_until_expiry"] < 20 else "LOW")
+        ),
+    )
+    monkeypatch.setattr(main, "process_digest", fake_process_digest)
+    monkeypatch.setattr(main, "datetime", FakeDateTime)
+
+    main.run_once()
+
+    # Should have 2 digest calls (u1 and u2)
+    assert len(digest_calls) == 2
+
+    u1_call = next(c for c in digest_calls if c["uid"] == "u1")
+    assert len(u1_call["docs"]) == 2  # Critical + High
+    assert u1_call["risks"]["CRITICAL"] == 1
+    assert u1_call["risks"]["HIGH"] == 1
+
+    u2_call = next(c for c in digest_calls if c["uid"] == "u2")
+
+    # Doc 3 (CRITICAL) is urgent -> included
+    # Doc 4 (LOW) is not urgent -> excluded from docs list, but risk count recorded
+    assert len(u2_call["docs"]) == 1
+
+    assert u2_call["risks"]["LOW"] == 1
+    assert u2_call["risks"]["CRITICAL"] == 1
+
+
+def test_run_once_skips_digest_for_low_risk_only(monkeypatch):
+    fixed = datetime(2024, 1, 1, 12, 0, tzinfo=timezone.utc)
+
+    class FakeDateTime(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return fixed
+
+    # One document: LOW risk (far future)
+    docs = [
+        {
+            "_id": 1,
+            "user_id": "u1",
+            "expiry_date": "2024-06-01",
+            "importance": 1,
+        },
+    ]
+
+    class FakeCollection:
+        def __init__(self, docs):
+            self.docs = docs
+            self.updates = []
+
+        def find(self, *args, **kwargs):
+            return self.docs
+
+        def update_one(self, *args, **kwargs):
+            self.updates.append(kwargs)
+
+    db = SimpleNamespace(documents=FakeCollection(docs))
+
+    # We mock process_digest to ensure it's NOT called
+    process_digest_mock = MagicMock()
+
+    monkeypatch.setattr(main, "get_db", lambda: db)
+    # Mock compute_risk_level to guarantee LOW
+    monkeypatch.setattr(main, "compute_risk_level", lambda **kwargs: "LOW")
+    monkeypatch.setattr(main, "process_digest", process_digest_mock)
+    monkeypatch.setattr(main, "datetime", FakeDateTime)
+
+    main.run_once()
+
+    # process_digest should NOT be called because urgent_by_user should be empty
+    process_digest_mock.assert_not_called()
+
 """
 
 Tests
