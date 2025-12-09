@@ -4,17 +4,8 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-flask = "*"
-pymongo = "*"
-flask-login = "*"
-icalendar = "*"
-pytest = "*"
 
 [dev-packages]
-black = "*"
-pylint = "*"
-pytest = "*"
-pytest-cov = "*"
 
 [requires]
 python_version = "3.11"
