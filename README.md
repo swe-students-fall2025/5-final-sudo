@@ -1,4 +1,6 @@
 [![Lint](https://github.com/swe-students-fall2025/5-final-sudo/actions/workflows/lint.yml/badge.svg)](https://github.com/swe-students-fall2025/5-final-sudo/actions/workflows/lint.yml)
+[![Web App CI/CD](https://github.com/swe-students-fall2025/5-final-sudo/actions/workflows/web-app-cicd.yml/badge.svg)](https://github.com/swe-students-fall2025/5-final-sudo/actions/workflows/web-app-cicd.yml)
+[![Reminder Service CI/CD](https://github.com/swe-students-fall2025/5-final-sudo/actions/workflows/reminder-service-cicd.yml/badge.svg)](https://github.com/swe-students-fall2025/5-final-sudo/actions/workflows/reminder-service-cicd.yml)
 
 # DocKeeper - Document Expiry Tracker
 
@@ -12,6 +14,8 @@ DocKeeper is a document expiry tracking system designed to help users manage imp
 
 All services communicate through MongoDB and are designed to be deployed together.
 
+**Live Demo:** http://45.55.224.107/
+
 ## Team Members
 
 - [Saud Alsheddy](https://github.com/Saud-Al5)
@@ -22,8 +26,8 @@ All services communicate through MongoDB and are designed to be deployed togethe
 
 ## Docker Images
 
-- **Web App**: TBD (will be published to Docker Hub before submission)
-- **Reminder Service**: TBD (will be published to Docker Hub before submission)
+- **Web App**: [dockeeper-web-app](https://hub.docker.com/r/sa8429/dockeeper-web-app)
+- **Reminder Service**: [dockeeper-reminder-service](https://hub.docker.com/r/sa8429/dockeeper-reminder-service)
 
 ## Prerequisites
 
@@ -32,18 +36,24 @@ All services communicate through MongoDB and are designed to be deployed togethe
 
 ## Quick Start (Docker Compose)
 
-1. Clone the repository:
+1. Clone the repository (use HTTPS or SSH from GitHub):
    ```bash
    git clone <repository-url>
    cd 5-final-sudo
    ```
 
-2. Start all services:
+2. Create configuration file:
+   ```bash
+   cp .env.example .env
+   # On Windows: copy .env.example .env
+   ```
+
+3. Start all services:
    ```bash
    docker compose up -d --build
    ```
 
-3. Open the Dashboard:
+4. Open the Dashboard:
    [http://localhost:8000](http://localhost:8000)
 
 This starts:
@@ -75,30 +85,6 @@ If you want to force another email (mock or real) immediately:
 docker compose exec mongodb mongosh dockeeper --eval "db.notification_state.deleteMany({})"
 ```
 
-## TailwindCSS
-
-The web app uses TailwindCSS for styling. The CSS is compiled during the Docker build process—no runtime dependencies needed.
-
-### How it works
-
-When you run `docker compose up --build`, the web-app Dockerfile:
-1. Installs Tailwind tooling with npm
-2. Compiles `web-app/static/css/tailwind.css` → `web-app/static/css/output.css`
-3. Copies the compiled CSS into the final image
-4. Flask serves the compiled `output.css` file
-
-The compiled `output.css` is gitignored since Docker generates it automatically.
-
-### Running without Docker
-
-If you need to run Flask locally without Docker (not recommended), compile the CSS first:
-
-```bash
-npm ci
-npx @tailwindcss/cli -i ./web-app/static/css/tailwind.css -o ./web-app/static/css/output.css --minify
-```
-
-Node.js is used strictly for development (compiling TailwindCSS). There is no Node.js runtime in the final application.
 
 ## Configuration Setup
 
@@ -116,6 +102,8 @@ For both local development and deployment, you should create a `.env` file to co
 2. **Edit `.env`:**
    - **Local:** The defaults work out of the box.
    - **Production:** You **MUST** update `SECRET_KEY` and email settings.
+   
+   To test out real email sending you must create a brevo account at [brevo's webiste](https://app.brevo.com/) and get an API key from there. Then update the `BREVO_API_KEY` in the `.env` file.
 
 ## Environment Variables
 
@@ -127,7 +115,7 @@ DocKeeper is configured through environment variables (via Docker Compose).
 |----------|---------|-------------|
 | `MONGO_URI` | `mongodb://mongodb:27017` | MongoDB connection string |
 | `MONGO_DB_NAME` | `dockeeper` | MongoDB database name |
-| `SECRET_KEY` | - | **Required**. Cryptographic key for sessions. |
+| `SECRET_KEY` | `dev-change-me` | Cryptographic key for sessions. Dev default. **Must be changed in production**. |
 
 ### Reminder Service
 
@@ -141,54 +129,45 @@ DocKeeper is configured through environment variables (via Docker Compose).
 | `BREVO_SENDER_EMAIL` | - | Sender email address (required if mode is `brevo`) |
 | `BREVO_SENDER_NAME` | `DocKeeper` | Sender name for emails |
 
-### Production Configuration (.env)
-
-For deployment (e.g., DigitalOcean), populating `.env` is **required** to ensure security and proper email functionality. Never deploy with the default `SECRET_KEY`.
-
-## Database Collections
-
-### `documents`
-Stores the “things that expire” users create.
-
-Core fields:
-- `doc_type` (string) - canonical type (e.g., `passport`, `subscription`, `other`)
-- `label` (string, optional) - user-provided label (like: "Netflix", "Work", "Mom")
-- `name` (string) - display name (generated from type + label)
-- `category` (string) - internal grouping derived from type
-- `expiry_date` (string) - typically `YYYY-MM-DD`
-- `renewal_lead_time_days` (int) - reminder window start (overridable)
-- `importance` (int) - internal weighting (overridable)
-- `notes` (string, optional)
-
-Worker-computed fields (written by the reminder service):
-- `last_risk` (string) - `LOW` / `MEDIUM` / `HIGH` / `CRITICAL`
-- `last_days_until` (int) - days remaining (negative means expired)
-- `last_checked_at` (datetime) - last time worker evaluated this document
-
-## API Endpoints
-
-### Health Check
-- `GET /api/health` - service health
-
-### Documents
-- `GET /api/documents` - list documents
-- `POST /api/documents` - create a document
-- `PATCH /api/documents/<doc_id>` - update document details or renewal settings
-- `GET /api/documents?include_archived=1` - include archived documents in list
-- `POST /api/documents/<doc_id>/renew` - renew/update expiry date (optional importance/lead time)
-- `POST /api/documents/<doc_id>/archive` - archive a document
-- `POST /api/documents/<doc_id>/unarchive` - unarchive a document
-- `DELETE /api/documents/<doc_id>` - delete a document
-- `GET /api/documents/calendar.ics` - download an iCalendar (.ics) file with expiry and reminder events
-- `GET /api/documents/calendar.ics?include_archived=1` - include archived in calendar export
-
 ## Development Notes
 
-This repo is designed to be run via Docker Compose. It is fully configured for deployment on Digital Ocean.
+This repo is designed to be run via Docker Compose.
 
-## Code Quality
+## CI/CD (GitHub Actions)
 
-Before submitting changes, run linting and formatting checks:
+This repo has two separate CI/CD workflows (one per subsystem):
+
+- **web-app-ci-cd**: tests (>=80% coverage), builds & pushes the web-app image to Docker Hub, then deploys to DigitalOcean
+- **reminder-service-ci-cd**: tests (>=80% coverage), builds & pushes the reminder-service image to Docker Hub, then deploys to DigitalOcean
+
+## Deployment (DigitalOcean)
+
+Deployment is done via Docker Compose on a DigitalOcean Droplet.
+
+The live site is currently hosted at: http://45.55.224.107/
+
+## TailwindCSS (build-time only)
+
+We use TailwindCSS for styling. **Node/npm is used only to compile CSS** (no Node runtime in production).
+
+### To run with Docker (recommended)
+
+`docker compose up --build` compiles:
+`web-app/static/css/tailwind.css` -> `web-app/static/css/output.css`
+
+`output.css` is **not committed** (generated during build).
+
+### To run without Docker (optional) compile CSS manually
+
+```bash
+npm ci
+npx @tailwindcss/cli -i ./web-app/static/css/tailwind.css -o ./web-app/static/css/output.css --minify
+```
+
+## Code Quality (optional local dev)
+
+CI/CD runs tests/coverage automatically via `requirements.txt`.  
+If you prefer Pipenv locally, you can run the same checks with before pushing:
 
 ```bash
 # From web-app/ or expiry-reminder-service/
