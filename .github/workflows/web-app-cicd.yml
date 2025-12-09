@@ -64,5 +64,5 @@ jobs:
           script: |
             set -e
             cd ${{ secrets.DO_DEPLOY_PATH }}
-            docker compose -f docker-compose.prod.yml pull web-app
-            docker compose -f docker-compose.prod.yml up -d web-app
+            docker compose -f docker-compose.prod.yml pull
+            docker compose -f docker-compose.prod.yml up -d

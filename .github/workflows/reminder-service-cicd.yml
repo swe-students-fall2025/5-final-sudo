@@ -64,5 +64,5 @@ jobs:
           script: |
             set -e
             cd ${{ secrets.DO_DEPLOY_PATH }}
-            docker compose -f docker-compose.prod.yml pull reminder-service
-            docker compose -f docker-compose.prod.yml up -d reminder-service
+            docker compose -f docker-compose.prod.yml pull
+            docker compose -f docker-compose.prod.yml up -d
