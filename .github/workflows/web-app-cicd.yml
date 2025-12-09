@@ -64,5 +64,6 @@ jobs:
           script: |
             set -e
             cd ${{ secrets.DO_DEPLOY_PATH }}
+            docker compose -f docker-compose.prod.yml up -d mongodb
             docker compose -f docker-compose.prod.yml pull web-app
             docker compose -f docker-compose.prod.yml up -d --no-deps web-app
