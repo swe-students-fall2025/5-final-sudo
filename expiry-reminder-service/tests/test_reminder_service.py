@@ -691,6 +691,7 @@ def test_run_once_skips_digest_for_low_risk_only(monkeypatch):
     # process_digest should NOT be called because urgent_by_user should be empty
     process_digest_mock.assert_not_called()
 
+
 """
 
 Tests
