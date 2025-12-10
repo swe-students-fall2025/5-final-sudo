@@ -199,6 +199,26 @@ This repo has two separate CI/CD workflows (one per subsystem):
 - **web-app-ci-cd**: tests (>=80% coverage), builds & pushes the web-app image to Docker Hub, then deploys to DigitalOcean
 - **reminder-service-ci-cd**: tests (>=80% coverage), builds/pushes the reminder-service image to Docker Hub, then deploys to DigitalOcean
 
+### GitHub Actions Secrets (CI/CD Deploy)
+
+Our deploy workflows run on **push to `main`** and require these **Repository Secrets**
+(Settings -> Secrets and variables -> Actions):
+
+| Secret | Used for |
+|--------|----------|
+| `DOCKERHUB_USERNAME` | Docker Hub username (also used to build image tags) |
+| `DOCKERHUB_TOKEN` | Docker Hub access token for `docker login` + pushing images |
+| `DO_HOST` | DigitalOcean droplet host/IP (SSH target) |
+| `DO_USER` | SSH username on the droplet |
+| `DO_SSH_KEY` | Private SSH key that can SSH into the droplet |
+| `DO_DEPLOY_PATH` | Folder on the droplet that contains `docker-compose.prod.yml` |
+
+**Notes**
+- PRs run **tests only** deploy only happens on `push` to `main`.
+- On the droplet, `DO_DEPLOY_PATH` must contain `docker-compose.prod.yml` and the production `.env` (or equivalent environment vars).
+- These secrets are for CI/CD deployment only. Local development uses `.env` + Docker Compose.
+- Never commit secret values to the repo.
+
 ## Deployment (DigitalOcean)
 
 Deployment is done via Docker Compose on a DigitalOcean Droplet.

@@ -373,6 +373,33 @@ function populateTypeFilter() {
   });
 }
 
+function populateLabelFilter() {
+  const select = document.getElementById("filterLabel");
+  if (!select) return;
+
+  const labels = new Set();
+  (allDocuments || []).forEach((doc) => {
+    if (doc.label && String(doc.label).trim()) {
+      labels.add(String(doc.label).trim());
+    }
+  });
+
+  // Keep first 2 options (All Labels, Unlabeled), then rebuild the rest
+  select.innerHTML = `
+    <option value="all">All Labels</option>
+    <option value="__none__">Unlabeled</option>
+  `;
+
+  Array.from(labels)
+    .sort((a, b) => a.localeCompare(b))
+    .forEach((label) => {
+      const opt = document.createElement("option");
+      opt.value = label.toLowerCase();
+      opt.textContent = label;
+      select.appendChild(opt);
+    });
+}
+
 // =======================================================
 //  PAGINATION RENDERING
 // =======================================================
@@ -480,6 +507,7 @@ async function loadDocuments() {
 
   populateTypeFilter();
   populateLabelOptions();
+  populateLabelFilter();
 }
 
 function renderDocumentList() {
@@ -497,6 +525,9 @@ function renderDocumentList() {
   const riskFilter = (
     document.getElementById("filterImportance")?.value || "all"
   ).toUpperCase();
+  const labelFilter = (
+    document.getElementById("filterLabel")?.value || "all"
+  ).toLowerCase();
 
   const allActiveDocs = allDocuments.filter(
     (d) => String(d.archived) !== "true"
@@ -520,7 +551,13 @@ function renderDocumentList() {
 
     const matchesRisk = riskFilter === "ALL" || risk === riskFilter;
 
-    return matchesSearch && matchesType && matchesRisk;
+    const docLabel = (doc.label || "").toLowerCase();
+
+    const matchesLabel =
+      labelFilter === "all" ||
+      (labelFilter === "__none__" ? !docLabel : docLabel === labelFilter);
+
+    return matchesSearch && matchesType && matchesRisk && matchesLabel;
   });
 
   const totalPages = Math.max(1, Math.ceil(activeDocs.length / pageSize));
@@ -555,6 +592,9 @@ function renderArchivedList() {
   const riskFilter = (
     document.getElementById("filterImportance")?.value || "all"
   ).toUpperCase();
+  const labelFilter = (
+    document.getElementById("filterLabel")?.value || "all"
+  ).toLowerCase();
 
   const allArchivedDocs = allDocuments.filter(
     (d) => String(d.archived) === "true"
@@ -578,7 +618,13 @@ function renderArchivedList() {
 
     const matchesRisk = riskFilter === "ALL" || risk === riskFilter;
 
-    return matchesSearch && matchesType && matchesRisk;
+    const docLabel = (doc.label || "").toLowerCase();
+
+    const matchesLabel =
+      labelFilter === "all" ||
+      (labelFilter === "__none__" ? !docLabel : docLabel === labelFilter);
+
+    return matchesSearch && matchesType && matchesRisk && matchesLabel;
   });
 
   const totalPages = Math.max(1, Math.ceil(archivedDocs.length / pageSize));
@@ -1160,7 +1206,7 @@ document.addEventListener("DOMContentLoaded", () => {
     renderArchivedList();
   });
 
-  document.querySelectorAll("#filterType, #filterImportance").forEach((el) => {
+  document.querySelectorAll("#filterType, #filterImportance, #filterLabel").forEach((el) => {
     el.addEventListener("change", (e) => {
       renderDocumentList();
       renderArchivedList();
