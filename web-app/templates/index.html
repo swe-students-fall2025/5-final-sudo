@@ -39,7 +39,8 @@
 
     <!-- CARD -->
     <div class="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
-      <!-- TABS (must wrap both buttons in a flex or grid) -->
+      <!-- TABS -->
+
       <div class="grid grid-cols-2 mb-6 border-b border-gray-300">
         <!-- ACTIVE by default -->
         <button
@@ -62,6 +63,12 @@
 
       <!-- LOGIN FORM -->
       <div id="loginTabContent">
+  <!-- Inline message area (replaces alert/prompt UX) -->
+  <div id="loginMessage"
+       class="hidden mb-4 rounded-lg border p-3 text-sm"
+       role="status"
+       aria-live="polite"></div>
+
         <form id="loginForm" class="space-y-4">
           <div class="space-y-1">
             <label for="loginEmail">Email:</label>
@@ -92,10 +99,29 @@
             Login
           </button>
         </form>
+      <div class="text-center mt-3 space-y-2">
+        <div>
+          <a href="#" onclick="resendVerification(); return false;" class="text-sm text-blue-600 hover:underline">
+            Resend verification email
+          </a>
+        </div>
+        <div>
+          <a href="#" onclick="showForgotPassword(); return false;" class="text-sm text-blue-600 hover:underline">
+            Forgot password?
+          </a>
+        </div>
+      </div>
+
       </div>
 
       <!-- REGISTER FORM -->
       <div id="registerTabContent" class="hidden">
+  <!-- Inline message area (replaces alert/prompt UX) -->
+  <div id="registerMessage"
+       class="hidden mb-4 rounded-lg border p-3 text-sm"
+       role="status"
+       aria-live="polite"></div>
+
         <form id="registerForm" class="space-y-4">
           <div class="space-y-1">
             <label>Email:</label>
@@ -126,11 +152,56 @@
             Register
           </button>
         </form>
+      <div class="text-center mt-3">
+        <a href="#" onclick="switchTab('login'); return false;" class="text-sm text-blue-600 hover:underline">
+          Back to login
+        </a>
       </div>
     </div>
 
+    <!-- FORGOT PASSWORD -->
+    <div id="forgotTabContent" class="hidden">
+      <div id="forgotMessage" class="hidden mb-4 rounded-lg border p-3 text-sm" role="status" aria-live="polite"></div>
+      <form id="forgotForm" class="space-y-4">
+        <div class="space-y-1">
+          <label for="forgotEmail">Email:</label>
+          <input id="forgotEmail" type="email" placeholder="Enter your account email" class="w-full bg-gray-100 rounded-lg px-3 py-2" required />
+        </div>
+        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg mt-4">
+          Send reset link
+        </button>
+      </form>
+      <div class="text-center mt-3">
+        <a href="#" onclick="switchTab('login'); return false;" class="text-sm text-blue-600 hover:underline">
+          Back to login
+        </a>
+      </div>
+    </div>
 
+    <!-- RESET PASSWORD (shown when ?reset_token=... is present) -->
+    <div id="resetTabContent" class="hidden">
+      <div id="resetMessage" class="hidden mb-4 rounded-lg border p-3 text-sm" role="status" aria-live="polite"></div>
+      <form id="resetForm" class="space-y-4">
+        <div class="space-y-1">
+          <label for="resetPassword">New Password:</label>
+          <input id="resetPassword" type="password" placeholder="Create a new password" class="w-full bg-gray-100 rounded-lg px-3 py-2" required />
+        </div>
+        <div class="space-y-1">
+          <label for="resetPassword2">Repeat Password:</label>
+          <input id="resetPassword2" type="password" placeholder="Repeat your new password" class="w-full bg-gray-100 rounded-lg px-3 py-2" required />
+        </div>
+        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg mt-4">
+          Reset password
+        </button>
+      </form>
+      <div class="text-center mt-3">
+        <a href="#" onclick="switchTab('login'); return false;" class="text-sm text-blue-600 hover:underline">
+          Back to login
+        </a>
+      </div>
+    </div>
   </div>
+</div>
 </div>
 
 <!-- DASHBOARD -->
@@ -140,10 +211,20 @@
 
 <script>
   function switchTab(tab) {
+  // Clear inline messages when switching tabs
+  if (window.clearAuthMessages) window.clearAuthMessages();
+
     const loginTab = document.getElementById("loginTabContent");
     const registerTab = document.getElementById("registerTabContent");
+    const forgotTab = document.getElementById("forgotTabContent");
+    const resetTab = document.getElementById("resetTabContent");
     const btnLogin = document.getElementById("tabLogin");
     const btnRegister = document.getElementById("tabRegister");
+
+    // always hide forgot/reset when switching tabs
+    if (forgotTab) forgotTab.classList.add("hidden");
+    if (resetTab) resetTab.classList.add("hidden");
+
 
     if (tab === "login") {
       loginTab.classList.remove("hidden");

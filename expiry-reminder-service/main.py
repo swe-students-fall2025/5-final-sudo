@@ -166,6 +166,9 @@ def process_digest(db, user_id, urgent_docs, risk_counts) -> None:
 
     to_email = user["email"]
 
+    if not user.get("is_verified"):
+        return
+
     # Check 7 day window
     state = db.notification_state.find_one({"user_id": user_id})
     last_sent = state.get("last_digest_at") if state else None
