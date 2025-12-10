@@ -6,10 +6,10 @@
 
 ## Description
 
-DocKeeper is a document expiry tracking system designed to help users manage important documents (IDs, permits, subscriptions, warranties, etc.) and receive timely reminders before they expire based on an automated risk calculation. The system runs as **three containers**:
+DocKeeper is a document expiry tracking system designed to help users manage important documents (IDs, permits, subscriptions, warranties, etc.) and receive reminders before they expire based on an automated risk calculation. The system runs as **three containers**:
 
 1. **MongoDB**: Shared database for all persisted data.
-2. **Web Application**: A Flask-based web interface + REST API for creating and viewing expiring items.
+2. **Web Application**: Flask web UI + REST API for creating and viewing expiring items.
 3. **Expiry Reminder Service**: A background worker that periodically scans the database, calculates urgency/risk, and sends a **weekly action-needed digest** (via email or log) if critical or high-risk items are found.
 
 All services communicate through MongoDB and are designed to be deployed together.
@@ -64,6 +64,8 @@ This starts:
 Stop everything with:
 - `docker compose down`
 
+If you want a clean database start, run: `docker compose down -v` (removes Mongo volume).
+
 ### Logs
 
 - View all logs: `docker compose logs -f`
@@ -77,6 +79,41 @@ When `EMAIL_MODE=mock` (default), the reminder service prints digest emails to t
    docker compose logs -f reminder-service
    ```
 3. You will see: `=== MOCK EMAIL DIGEST ===`
+
+**Mock Password Reset Links (Forgot Password):**
+When `EMAIL_MODE=mock`, password reset emails are **not sent**. Instead, the web app prints the reset link to the logs.
+
+To test locally:
+1. Click **Forgot password?** on the login screen and submit an email.
+2. View the web-app logs:
+   ```bash
+   docker compose logs -f web-app
+   ```
+3. Look for: `=== MOCK PASSWORD RESET EMAIL ===`
+4. Copy the printed URL (it contains `/?reset_token=...`) and paste it into your browser.
+
+**Web App Email Verification (for grading/local vs deployed):**
+- **Local / default (`EMAIL_MODE=mock`)**:
+  - Registration auto-verifies the account and auto-logs you in (no verification email is sent).
+  - If an account is somehow unverified, a successful login will auto-verify it.
+  - “Resend verification email” does not send an email in mock mode; it just activates the account if it exists.
+- **Deployed / real email (`EMAIL_MODE=brevo`)**:
+  - Registration requires email verification before login will work.
+  - A verification link is emailed and expires after 24 hours.
+  - Users can request another link using “Resend verification email” on the login screen (rate-limited).
+  - IMPORTANT: set `APP_BASE_URL` to your deployed URL so verification links point to the correct server.
+
+**Password Reset (Forgot Password) behavior:**
+- The app includes a **Forgot password?** flow on the login screen.
+- For security, the API always returns a generic message (it does not confirm whether the email exists).
+- Reset tokens are **time-limited** and stored **hashed** in the database (the raw token only appears in the email/log link).
+
+Local / default (`EMAIL_MODE=mock`):
+- The password reset link is printed to `web-app` logs (see “Mock Password Reset Links” above).
+
+Deployed / real email (`EMAIL_MODE=brevo`):
+- A reset link is emailed to the user.
+- IMPORTANT: set `APP_BASE_URL` to your deployed base URL so reset links point to the correct server.
 
 **Tip: Resetting the 7-Day Email Cooldown**
 If you want to force another email (mock or real) immediately:
@@ -104,6 +141,9 @@ For both local development and deployment, you should create a `.env` file to co
    - **Production:** You **MUST** update `SECRET_KEY` and email settings.
    
    To test out real email sending you must create a brevo account at [brevo's webiste](https://app.brevo.com/) and get an API key from there. Then update the `BREVO_API_KEY` in the `.env` file.
+   
+   For deployed verification links (web app), make sure `EMAIL_MODE=brevo` and set:
+   - `APP_BASE_URL` to your deployed base URL (for example our live site: `http://45.55.224.107`)
 
 ## Environment Variables
 
@@ -116,6 +156,11 @@ DocKeeper is configured through environment variables (via Docker Compose).
 | `MONGO_URI` | `mongodb://mongodb:27017` | MongoDB connection string |
 | `MONGO_DB_NAME` | `dockeeper` | MongoDB database name |
 | `SECRET_KEY` | `dev-change-me` | Cryptographic key for sessions. Dev default. **Must be changed in production**. |
+| `EMAIL_MODE` | `mock` | `mock` disables verification emails (auto-verifies/login). `brevo` enforces email verification + sends links. |
+| `APP_BASE_URL` | `http://localhost:8000` | Base URL used to build verification links (set to deployed URL in production). |
+| `BREVO_API_KEY` | - | Brevo API Key (required if mode is `brevo`) |
+| `BREVO_SENDER_EMAIL` | - | Sender email address (required if mode is `brevo`) |
+| `BREVO_SENDER_NAME` | `DocKeeper` | Sender name for emails |
 
 ### Reminder Service
 
@@ -131,6 +176,20 @@ DocKeeper is configured through environment variables (via Docker Compose).
 
 ## Development Notes
 
+### Run Tests Locally (optional)
+
+Run web-app tests:
+```bash
+docker compose exec web-app pytest -q
+```
+
+Run reminder-service tests:
+```bash
+docker compose exec reminder-service pytest -q
+```
+
+(Uses Docker so it works on Windows/macOS/Linux the same way.)
+
 This repo is designed to be run via Docker Compose.
 
 ## CI/CD (GitHub Actions)
@@ -138,7 +197,27 @@ This repo is designed to be run via Docker Compose.
 This repo has two separate CI/CD workflows (one per subsystem):
 
 - **web-app-ci-cd**: tests (>=80% coverage), builds & pushes the web-app image to Docker Hub, then deploys to DigitalOcean
-- **reminder-service-ci-cd**: tests (>=80% coverage), builds & pushes the reminder-service image to Docker Hub, then deploys to DigitalOcean
+- **reminder-service-ci-cd**: tests (>=80% coverage), builds/pushes the reminder-service image to Docker Hub, then deploys to DigitalOcean
+
+### GitHub Actions Secrets (CI/CD Deploy)
+
+Our deploy workflows run on **push to `main`** and require these **Repository Secrets**
+(Settings -> Secrets and variables -> Actions):
+
+| Secret | Used for |
+|--------|----------|
+| `DOCKERHUB_USERNAME` | Docker Hub username (also used to build image tags) |
+| `DOCKERHUB_TOKEN` | Docker Hub access token for `docker login` + pushing images |
+| `DO_HOST` | DigitalOcean droplet host/IP (SSH target) |
+| `DO_USER` | SSH username on the droplet |
+| `DO_SSH_KEY` | Private SSH key that can SSH into the droplet |
+| `DO_DEPLOY_PATH` | Folder on the droplet that contains `docker-compose.prod.yml` |
+
+**Notes**
+- PRs run **tests only** deploy only happens on `push` to `main`.
+- On the droplet, `DO_DEPLOY_PATH` must contain `docker-compose.prod.yml` and the production `.env` (or equivalent environment vars).
+- These secrets are for CI/CD deployment only. Local development uses `.env` + Docker Compose.
+- Never commit secret values to the repo.
 
 ## Deployment (DigitalOcean)
 
@@ -184,4 +263,3 @@ CI will automatically check these on pull requests.
 ## License
 
 See [LICENSE](LICENSE) for details.
-

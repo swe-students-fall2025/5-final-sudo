@@ -245,7 +245,9 @@ def test_process_digest_mock_mode_updates_state(monkeypatch, capsys):
         {"name": "Visa", "risk": "HIGH", "days_until": 5},
     ]
     db = SimpleNamespace(
-        users=FakeCollection({"email": "user@test.com", "timezone": "Not/AZone"}),
+        users=FakeCollection(
+            {"email": "user@test.com", "timezone": "Not/AZone", "is_verified": True}
+        ),
         notification_state=FakeCollection({}),
     )
 
@@ -282,10 +284,10 @@ def test_process_digest_brevo_success_and_failure(monkeypatch):
         def update_one(self, *args, **kwargs):
             self.updated = (args, kwargs)
 
-    user = {"email": "user@test.com", "timezone": "UTC"}
+    user = {"email": "user@test.com", "timezone": "UTC", "is_verified": True}
     urgent_docs = [{"name": "Pass", "risk": "CRITICAL", "days_until": 0}]
 
-    # Failure case: brevo_send_email raises, so state not updated
+    # Failure: brevo_send_email raises -> state NOT updated
     db_fail = SimpleNamespace(
         users=FakeCollection(user),
         notification_state=FakeCollection({}),
@@ -304,12 +306,13 @@ def test_process_digest_brevo_success_and_failure(monkeypatch):
     )
     assert db_fail.notification_state.updated is None
 
-    # Success case: updates state
+    # Success: brevo_send_email ok -> state updated
     db_success = SimpleNamespace(
         users=FakeCollection(user),
         notification_state=FakeCollection({}),
     )
     monkeypatch.setattr(main, "brevo_send_email", lambda *_, **__: None)
+
     main.process_digest(
         db_success, "507f1f77bcf86cd799439011", urgent_docs, {"CRITICAL": 1}
     )
@@ -480,12 +483,8 @@ def test_timezone_day_boundary(monkeypatch, capsys):
         def now(cls, tz=None):
             return fake_utc_now if tz is None else fake_utc_now.astimezone(tz)
 
-    # We want to ensure the email says "in 2 days" (User perspective), not 1.
-
-    user = {"email": "ny@test.com", "timezone": "America/New_York"}
-    urgent_docs = [
-        {"name": "Doc", "risk": "HIGH", "days_until": 1}
-    ]  # "days_until" passed from run_once is UTC-based (1)
+    user = {"email": "ny@test.com", "timezone": "America/New_York", "is_verified": True}
+    urgent_docs = [{"name": "Doc", "risk": "HIGH", "days_until": 1}]  # UTC-based
 
     class FakeCollection:
         def __init__(self, item):
@@ -505,11 +504,9 @@ def test_timezone_day_boundary(monkeypatch, capsys):
     monkeypatch.setattr(main, "datetime", FakeDateTime)
     monkeypatch.setenv("EMAIL_MODE", "mock")
 
-    # Pass the UTC-based days_until=1
     main.process_digest(db, "uid", urgent_docs, {"HIGH": 1})
 
     captured = capsys.readouterr().out
-    # Should be adjusted to 2 days because User is 1 day behind UTC roughly
     assert "Doc (HIGH): in 2 days" in captured
 
 
@@ -519,15 +516,13 @@ def test_process_digest_sorting(monkeypatch, capsys):
     class FakeDateTime(datetime):
         @classmethod
         def now(cls, tz=None):
-            return fixed
+            return fixed if tz is None else fixed.astimezone(tz)
 
     urgent_docs = [
         {"name": "LowPrio", "risk": "HIGH", "days_until": 5},
         {"name": "Urgent", "risk": "CRITICAL", "days_until": 1},
         {"name": "HighPrio", "risk": "HIGH", "days_until": 2},
     ]
-
-    # Expectation: Critical first, then High sorted by days (1, 2, 5)
 
     class FakeCollection:
         def __init__(self, item):
@@ -540,9 +535,12 @@ def test_process_digest_sorting(monkeypatch, capsys):
             pass
 
     db = SimpleNamespace(
-        users=FakeCollection({"email": "u@t.com"}),
+        users=FakeCollection(
+            {"email": "u@t.com", "timezone": "UTC", "is_verified": True}
+        ),
         notification_state=FakeCollection({}),
     )
+
     monkeypatch.setattr(main, "ObjectId", lambda x: x)
     monkeypatch.setattr(main, "datetime", FakeDateTime)
     monkeypatch.setenv("EMAIL_MODE", "mock")
@@ -551,7 +549,6 @@ def test_process_digest_sorting(monkeypatch, capsys):
 
     captured = capsys.readouterr().out
     lines = [l.strip() for l in captured.splitlines() if " - " in l]
-    # Filter only doc lines
     doc_lines = [l for l in lines if "(" in l and "):" in l]
 
     assert "Urgent (CRITICAL)" in doc_lines[0]
