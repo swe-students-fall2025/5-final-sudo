@@ -284,9 +284,8 @@ function renderCard(doc) {
         </div>
 
         <!-- Days Left -->
-        ${
-          doc.days_until !== undefined && doc.days_until !== null
-            ? `
+        ${doc.days_until !== undefined && doc.days_until !== null
+      ? `
         <div class="flex items-center gap-2 text-gray-700">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="w-5 h-5" fill="currentColor" stroke-width="2"
             stroke-linecap="round" stroke-linejoin="round">
@@ -297,13 +296,12 @@ function renderCard(doc) {
         <span class="font-medium">${doc.days_until} days</span>
         </div>
         `
-            : ""
-        }
+      : ""
+    }
 
         <!-- Label -->
-        ${
-          doc.label
-            ? `
+        ${doc.label
+      ? `
         <div class="flex items-center gap-2">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="w-5 h-5" fill="currentColor" stroke-width="2"
             stroke-linecap="round" stroke-linejoin="round">
@@ -315,18 +313,17 @@ function renderCard(doc) {
                 ${doc.label}
             </span>
         </div>`
-            : ""
-        }
+      : ""
+    }
 
         <!-- Notes -->
-        ${
-          doc.notes
-            ? `
+        ${doc.notes
+      ? `
         <div class="pt-2 border-t border-gray-100">
             <p class="text-gray-600 leading-relaxed text-sm">${doc.notes}</p>
         </div>`
-            : ""
-        }
+      : ""
+    }
     </div>
 
 </div>`;
@@ -819,8 +816,111 @@ function showAuth() {
 }
 
 // =======================================================
+//  INLINE AUTH MESSAGES (replaces alert/prompt)
+// =======================================================
+function showAuthMessage(which, text, kind = "info") {
+  const id =
+    which === "register"
+      ? "registerMessage"
+      : which === "forgot"
+        ? "forgotMessage"
+        : which === "reset"
+          ? "resetMessage"
+          : "loginMessage";
+  const el = document.getElementById(id);
+  if (!el) return;
+
+  if (!text) {
+    el.textContent = "";
+    el.classList.add("hidden");
+    return;
+  }
+
+  // reset style
+  el.classList.remove(
+    "bg-red-50", "border-red-200", "text-red-800",
+    "bg-green-50", "border-green-200", "text-green-800",
+    "bg-blue-50", "border-blue-200", "text-blue-800"
+  );
+
+  if (kind === "error") {
+    el.classList.add("bg-red-50", "border-red-200", "text-red-800");
+  } else if (kind === "success") {
+    el.classList.add("bg-green-50", "border-green-200", "text-green-800");
+  } else {
+    el.classList.add("bg-blue-50", "border-blue-200", "text-blue-800");
+  }
+
+  el.textContent = text;
+  el.classList.remove("hidden");
+}
+
+function clearAuthMessages() {
+  showAuthMessage("login", "");
+  showAuthMessage("register", "");
+  showAuthMessage("forgot", "");
+  showAuthMessage("reset", "");
+}
+window.clearAuthMessages = clearAuthMessages;
+
+function showForgotPassword() {
+  clearAuthMessages();
+  document.getElementById("loginTabContent")?.classList.add("hidden");
+  document.getElementById("registerTabContent")?.classList.add("hidden");
+  document.getElementById("resetTabContent")?.classList.add("hidden");
+  document.getElementById("forgotTabContent")?.classList.remove("hidden");
+  // prefill from login email if present
+  const loginEmail = document.getElementById("loginEmail")?.value || "";
+  const forgotEmail = document.getElementById("forgotEmail");
+  if (forgotEmail && !forgotEmail.value) forgotEmail.value = loginEmail;
+}
+window.showForgotPassword = showForgotPassword;
+
+function showResetPasswordUI() {
+  clearAuthMessages();
+  document.getElementById("loginTabContent")?.classList.add("hidden");
+  document.getElementById("registerTabContent")?.classList.add("hidden");
+  document.getElementById("forgotTabContent")?.classList.add("hidden");
+  document.getElementById("resetTabContent")?.classList.remove("hidden");
+}
+
+function showDashboard() {
+  disableAuthLayout();
+  clearAuthMessages();
+  document.getElementById("authPanel").classList.add("hidden");
+  document.getElementById("dashboard").classList.remove("hidden");
+  loadDocuments();
+}
+
+
+// =======================================================
 //  AUTH
 // =======================================================
+async function resendVerification() {
+  // Use the login email field (no prompt pop-up)
+  const email = (document.getElementById("loginEmail")?.value || "").trim();
+  if (!email) {
+    showAuthMessage("login", "Enter your email in the login form first, then click resend.", "error");
+    return;
+  }
+
+  try {
+    showAuthMessage("login", "Sending verification link...", "info");
+    const res = await fetch("/api/auth/resend-verification", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (res.ok) showAuthMessage("login", data.message || "Done.", "success");
+    else showAuthMessage("login", data.message || data.error || "Request failed.", "error");
+  } catch (err) {
+    showAuthMessage("login", "Failed to send request: " + err, "error");
+  }
+}
+window.resendVerification = resendVerification;
+
 async function checkAuth() {
   const res = await fetch("/api/auth/me");
   const data = await res.json();
@@ -858,6 +958,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const loginForm = document.getElementById("loginForm");
   loginForm?.addEventListener("submit", async (e) => {
     e.preventDefault();
+    clearAuthMessages();
     const email = document.getElementById("loginEmail").value;
     const password = document.getElementById("loginPassword").value;
 
@@ -871,14 +972,14 @@ document.addEventListener("DOMContentLoaded", () => {
       checkAuth();
     } else {
       try {
-        const data = await res.json();
-        if (res.status === 401) {
-          alert("Invalid email or password. Please double check!");
-        } else {
-          alert("Login failed : ", data.error || "Unknown Error");
-        }
+        const data = await res.json().catch(() => ({}));
+        if (res.status === 401) showAuthMessage("login", "Invalid email or password. Please double check!", "error");
+        else if (res.status === 403 && data.error === "email_not_verified")
+          showAuthMessage("login", "Email not verified. Click “Resend verification email”.", "error");
+        else
+          showAuthMessage("login", "Login failed: " + (data.error || "Unknown error"), "error");
       } catch (err) {
-        alert("Login failed");
+        showAuthMessage("login", "Login failed.", "error");
       }
     }
   });
@@ -887,6 +988,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const regForm = document.getElementById("registerForm");
   regForm?.addEventListener("submit", async (e) => {
     e.preventDefault();
+    clearAuthMessages();
     const email = document.getElementById("regEmail").value;
     const password = document.getElementById("regPassword").value;
 
@@ -899,20 +1001,119 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     if (res.ok) {
+      const data = await res.json();
+      if (data.message) {
+        showAuthMessage("register", data.message, "success");
+        regForm.reset();
+        return;
+      }
       checkAuth();
     } else {
       try {
-        const data = await res.json();
+        const data = await res.json().catch(() => ({}));
         if (res.status === 409 || data.error === "email_already_registered") {
-          alert(
-            "This email is already in use. Please login instead or use a different email."
+          showAuthMessage("register",
+            "This email is already in use. Please login instead or use a different email.",
+            "error"
           );
         } else {
-          alert("Registration failed : " + data.error);
+          showAuthMessage("register", "Registration failed: " + (data.error || "Unknown error"), "error");
         }
       } catch (err) {
-        alert("Registration failed: " + err);
+        showAuthMessage("register", "Registration failed: " + err, "error");
       }
+    }
+  });
+
+  // Forgot password
+  const forgotForm = document.getElementById("forgotForm");
+  forgotForm?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    clearAuthMessages();
+
+    const email = (document.getElementById("forgotEmail")?.value || "").trim();
+    if (!email) {
+      showAuthMessage("forgot", "Please enter your email.", "error");
+      return;
+    }
+
+    try {
+      showAuthMessage("forgot", "Sending reset link...", "info");
+      const res = await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json().catch(() => ({}));
+      // Always generic success message (secure, no enumeration)
+      if (res.ok) {
+        showAuthMessage(
+          "forgot",
+          data.message ||
+          "If this account exists, a password reset link has been sent.",
+          "success"
+        );
+      } else {
+        showAuthMessage(
+          "forgot",
+          data.message || data.error || "Request failed.",
+          "error"
+        );
+      }
+    } catch (err) {
+      showAuthMessage("forgot", "Failed to send request: " + err, "error");
+    }
+  });
+
+  // Reset password
+  const resetForm = document.getElementById("resetForm");
+  resetForm?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    clearAuthMessages();
+
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get("reset_token");
+    if (!token) {
+      showAuthMessage("reset", "Missing reset token. Please use the link from your email.", "error");
+      return;
+    }
+
+    const password = document.getElementById("resetPassword")?.value || "";
+    const password2 = document.getElementById("resetPassword2")?.value || "";
+
+    if (password.length < 8) {
+      showAuthMessage("reset", "Password must be at least 8 characters.", "error");
+      return;
+    }
+    if (password !== password2) {
+      showAuthMessage("reset", "Passwords do not match.", "error");
+      return;
+    }
+
+    try {
+      showAuthMessage("reset", "Resetting password...", "info");
+      const res = await fetch("/api/auth/reset-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, password, password2 }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        // Remove token from URL for safety
+        const cleanUrl = window.location.pathname;
+        window.history.replaceState({}, document.title, cleanUrl);
+        // Should be logged in now; go to dashboard
+        checkAuth();
+      } else {
+        if (data.error === "invalid_or_expired_token") {
+          showAuthMessage("reset", "Reset link is invalid or expired. Please request a new one.", "error");
+        } else {
+          showAuthMessage("reset", (data.error || "Reset failed."), "error");
+        }
+      }
+    } catch (err) {
+      showAuthMessage("reset", "Reset failed: " + err, "error");
     }
   });
 
@@ -969,6 +1170,15 @@ document.addEventListener("DOMContentLoaded", () => {
   // Begin
   checkAuth();
 });
+
+// If the user opened a reset link, show reset UI immediately
+document.addEventListener("DOMContentLoaded", () => {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("reset_token")) {
+    showResetPasswordUI();
+  }
+});
+
 
 // =======================================================
 //  EDIT DOCUMENT

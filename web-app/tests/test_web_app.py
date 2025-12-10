@@ -972,3 +972,745 @@ def test_coerce_importance_covers_words_bounds_and_invalid():
     assert coerce_importance("0", 3) == 1
     assert coerce_importance("6", 3) == 5
     assert coerce_importance("n/a", 3) == 3
+
+
+def test_send_verification_email_mock_is_noop(monkeypatch):
+    from auth_utils import send_verification_email
+
+    monkeypatch.setenv("EMAIL_MODE", "mock")
+
+    with patch("auth_utils.urllib.request.urlopen") as mock_urlopen:
+        send_verification_email("test@example.com", "token123")
+        mock_urlopen.assert_not_called()
+
+
+def test_send_verification_email_brevo_missing_env(monkeypatch):
+    from auth_utils import send_verification_email
+
+    monkeypatch.setenv("EMAIL_MODE", "brevo")
+    monkeypatch.delenv("BREVO_API_KEY", raising=False)
+    monkeypatch.delenv("BREVO_SENDER_EMAIL", raising=False)
+
+    with patch("auth_utils.urllib.request.urlopen") as mock_urlopen, patch(
+        "builtins.print"
+    ) as mock_print:
+        send_verification_email("test@example.com", "token123")
+        mock_urlopen.assert_not_called()
+
+        # ensure the error path printed something meaningful
+        printed = " ".join(str(c[0][0]) for c in mock_print.call_args_list if c[0])
+        assert "BREVO_API_KEY" in printed or "BREVO_SENDER_EMAIL" in printed
+
+
+def test_send_verification_email_brevo_success(monkeypatch):
+    from auth_utils import send_verification_email
+
+    monkeypatch.setenv("EMAIL_MODE", "brevo")
+    monkeypatch.setenv("BREVO_API_KEY", "fake-key")
+    monkeypatch.setenv("BREVO_SENDER_EMAIL", "sender@example.com")
+    monkeypatch.setenv("BREVO_SENDER_NAME", "DocKeeper")
+    monkeypatch.setenv("APP_BASE_URL", "http://localhost:8000")
+
+    class FakeResp:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def read(self):
+            return b"ok"
+
+    with patch(
+        "auth_utils.urllib.request.urlopen", return_value=FakeResp()
+    ) as mock_urlopen, patch("builtins.print") as mock_print:
+        send_verification_email("test@example.com", "token123")
+        mock_urlopen.assert_called_once()
+
+        printed = " ".join(str(c[0][0]) for c in mock_print.call_args_list if c[0])
+        assert "Sent Brevo verification email" in printed
+
+
+def test_send_verification_email_brevo_failure(monkeypatch):
+    from auth_utils import send_verification_email
+
+    monkeypatch.setenv("EMAIL_MODE", "brevo")
+    monkeypatch.setenv("BREVO_API_KEY", "fake-key")
+    monkeypatch.setenv("BREVO_SENDER_EMAIL", "sender@example.com")
+    monkeypatch.setenv("APP_BASE_URL", "http://localhost:8000")
+
+    with patch(
+        "auth_utils.urllib.request.urlopen", side_effect=Exception("boom")
+    ), patch("builtins.print") as mock_print:
+        send_verification_email("test@example.com", "token123")
+
+        printed = " ".join(str(c[0][0]) for c in mock_print.call_args_list if c[0])
+        assert "Failed to send Brevo verification email" in printed
+
+
+def test_register_mock_auto_verifies_and_logs_in(monkeypatch):
+    client = app.test_client()
+    monkeypatch.setenv("EMAIL_MODE", "mock")
+
+    with patch("main.get_db") as mock_get_db, patch(
+        "routers.auth.login_user"
+    ) as mock_login_user:
+        mock_db = MagicMock()
+        mock_get_db.return_value = mock_db
+        mock_db.users.insert_one.return_value.inserted_id = "507f1f77bcf86cd799439011"
+
+        res = client.post(
+            "/api/auth/register",
+            json={
+                "email": "mockuser@example.com",
+                "password": "nice123456",
+                "timezone": "UTC",
+            },
+        )
+        assert res.status_code == 201
+        data = res.get_json()
+        assert data["email"] == "mockuser@example.com"
+        assert "message" not in data  # should be auto-login payload
+        mock_login_user.assert_called_once()
+
+
+def test_register_brevo_requires_verification_and_sends_email(monkeypatch):
+    client = app.test_client()
+    monkeypatch.setenv("EMAIL_MODE", "brevo")
+    monkeypatch.setenv("APP_BASE_URL", "http://example.test")  # deterministic
+
+    with patch("main.get_db") as mock_get_db, patch(
+        "routers.auth.send_verification_email"
+    ) as mock_send, patch("routers.auth.login_user") as mock_login_user, patch(
+        "routers.auth.secrets.token_urlsafe", return_value="tok123"
+    ):
+        mock_db = MagicMock()
+        mock_get_db.return_value = mock_db
+        mock_db.users.find_one.return_value = None
+        mock_db.users.insert_one.return_value.inserted_id = "507f1f77bcf86cd799439011"
+
+        res = client.post(
+            "/api/auth/register",
+            json={
+                "email": "realuser@example.com",
+                "password": "nice123456",
+                "timezone": "UTC",
+            },
+        )
+        assert res.status_code == 201
+        data = res.get_json()
+        assert "Verification required" in data["message"]
+
+        mock_login_user.assert_not_called()
+        mock_send.assert_called_once_with(
+            "realuser@example.com",
+            "tok123",
+            base_url="http://example.test",
+        )
+
+
+def test_register_brevo_deletes_expired_unverified_user_then_allows_reregister(
+    monkeypatch,
+):
+    from datetime import timezone
+
+    client = app.test_client()
+    monkeypatch.setenv("EMAIL_MODE", "brevo")
+    monkeypatch.setenv("APP_BASE_URL", "http://example.test")  # deterministic
+
+    expired = datetime.now(timezone.utc) - timedelta(seconds=5)
+
+    with patch("main.get_db") as mock_get_db, patch(
+        "routers.auth.send_verification_email"
+    ) as mock_send, patch("routers.auth.secrets.token_urlsafe", return_value="tokABC"):
+        mock_db = MagicMock()
+        mock_get_db.return_value = mock_db
+
+        mock_db.users.find_one.return_value = {
+            "_id": ObjectId("507f1f77bcf86cd799439099"),
+            "email": "expired@example.com",
+            "is_verified": False,
+            "verify_token_expires_at": expired,
+        }
+        mock_db.users.insert_one.return_value.inserted_id = "507f1f77bcf86cd799439011"
+
+        res = client.post(
+            "/api/auth/register",
+            json={
+                "email": "expired@example.com",
+                "password": "nice123456",
+                "timezone": "UTC",
+            },
+        )
+        assert res.status_code == 201
+        mock_db.users.delete_one.assert_called_once()
+
+        mock_send.assert_called_once_with(
+            "expired@example.com",
+            "tokABC",
+            base_url="http://example.test",
+        )
+
+
+def test_verify_missing_token():
+    client = app.test_client()
+    res = client.get("/api/auth/verify")
+    assert res.status_code == 400
+
+
+def test_verify_invalid_or_expired_token(monkeypatch):
+    from datetime import timezone
+
+    client = app.test_client()
+    monkeypatch.setenv("EMAIL_MODE", "brevo")
+
+    with patch("main.get_db") as mock_get_db:
+        mock_db = MagicMock()
+        mock_get_db.return_value = mock_db
+        mock_db.users.find_one.return_value = None  # token not found
+
+        res = client.get("/api/auth/verify?token=badtoken")
+        assert res.status_code == 400
+
+
+def test_verify_success_marks_verified_and_clears_token(monkeypatch):
+    from datetime import timezone
+
+    client = app.test_client()
+    monkeypatch.setenv("EMAIL_MODE", "brevo")
+
+    user_id = ObjectId("507f1f77bcf86cd799439055")
+
+    with patch("main.get_db") as mock_get_db:
+        mock_db = MagicMock()
+        mock_get_db.return_value = mock_db
+
+        mock_db.users.find_one.return_value = {
+            "_id": user_id,
+            "email": "ver@example.com",
+            "verify_token": "goodtoken",
+            "verify_token_expires_at": datetime.now(timezone.utc) + timedelta(hours=1),
+        }
+
+        res = client.get("/api/auth/verify?token=goodtoken")
+        assert res.status_code == 200
+        assert b"Email Verified" in res.data
+        mock_db.users.update_one.assert_called_once()
+        args = mock_db.users.update_one.call_args
+        assert args[0][0] == {"_id": user_id}
+        assert args[0][1]["$set"]["is_verified"] is True
+        assert "verify_token" in args[0][1]["$unset"]
+        assert "verify_token_expires_at" in args[0][1]["$unset"]
+
+
+def test_resend_verification_mock_activates_user(monkeypatch):
+    client = app.test_client()
+    monkeypatch.setenv("EMAIL_MODE", "mock")
+
+    with patch("main.get_db") as mock_get_db:
+        mock_db = MagicMock()
+        mock_get_db.return_value = mock_db
+
+        mock_db.users.find_one.return_value = {
+            "_id": ObjectId("507f1f77bcf86cd799439066"),
+            "email": "u@example.com",
+            "is_verified": False,
+        }
+
+        res = client.post(
+            "/api/auth/resend-verification", json={"email": "u@example.com"}
+        )
+        assert res.status_code == 200
+        assert "mock mode" in res.get_json()["message"].lower()
+        mock_db.users.update_one.assert_called_once()
+
+
+def test_resend_verification_brevo_user_not_found_returns_generic(monkeypatch):
+    client = app.test_client()
+    monkeypatch.setenv("EMAIL_MODE", "brevo")
+
+    with patch("main.get_db") as mock_get_db:
+        mock_db = MagicMock()
+        mock_get_db.return_value = mock_db
+        mock_db.users.find_one.return_value = None
+
+        res = client.post(
+            "/api/auth/resend-verification", json={"email": "nouser@example.com"}
+        )
+        assert res.status_code == 200
+        assert "if this account exists" in res.get_json()["message"].lower()
+
+
+def test_resend_verification_brevo_already_verified(monkeypatch):
+    client = app.test_client()
+    monkeypatch.setenv("EMAIL_MODE", "brevo")
+
+    with patch("main.get_db") as mock_get_db:
+        mock_db = MagicMock()
+        mock_get_db.return_value = mock_db
+        mock_db.users.find_one.return_value = {
+            "email": "v@example.com",
+            "is_verified": True,
+        }
+
+        res = client.post(
+            "/api/auth/resend-verification", json={"email": "v@example.com"}
+        )
+        assert res.status_code == 400
+        assert res.get_json()["error"] == "already_verified"
+
+
+def test_resend_verification_brevo_rate_limit_60s_naive_datetime(monkeypatch):
+    client = app.test_client()
+    monkeypatch.setenv("EMAIL_MODE", "brevo")
+
+    naive_now = datetime.utcnow()  # naive dt
+
+    with patch("main.get_db") as mock_get_db:
+        mock_db = MagicMock()
+        mock_get_db.return_value = mock_db
+        mock_db.users.find_one.return_value = {
+            "_id": ObjectId("507f1f77bcf86cd799439077"),
+            "email": "x@example.com",
+            "is_verified": False,
+            "last_resend_at": naive_now,
+            "resend_window_start": naive_now,
+            "resend_count": 0,
+        }
+
+        res = client.post(
+            "/api/auth/resend-verification", json={"email": "x@example.com"}
+        )
+        assert res.status_code == 429
+        assert res.get_json()["error"] == "rate_limit_exceeded"
+
+
+def test_resend_verification_brevo_rate_limit_3_per_hour(monkeypatch):
+    from datetime import timezone
+
+    client = app.test_client()
+    monkeypatch.setenv("EMAIL_MODE", "brevo")
+
+    now = datetime.now(timezone.utc)
+
+    with patch("main.get_db") as mock_get_db:
+        mock_db = MagicMock()
+        mock_get_db.return_value = mock_db
+        mock_db.users.find_one.return_value = {
+            "_id": ObjectId("507f1f77bcf86cd799439078"),
+            "email": "x2@example.com",
+            "is_verified": False,
+            "last_resend_at": now - timedelta(seconds=120),
+            "resend_window_start": now,
+            "resend_count": 3,
+        }
+
+        res = client.post(
+            "/api/auth/resend-verification", json={"email": "x2@example.com"}
+        )
+        assert res.status_code == 429
+        assert res.get_json()["error"] == "rate_limit_exceeded"
+        assert "too many" in res.get_json()["message"].lower()
+
+
+def test_resend_verification_brevo_success_sends_email(monkeypatch):
+    from datetime import timezone
+
+    client = app.test_client()
+    monkeypatch.setenv("EMAIL_MODE", "brevo")
+    monkeypatch.setenv("APP_BASE_URL", "http://example.test")  # deterministic
+
+    now = datetime.now(timezone.utc)
+
+    with patch("main.get_db") as mock_get_db, patch(
+        "routers.auth.send_verification_email"
+    ) as mock_send, patch("routers.auth.secrets.token_urlsafe", return_value="newtok"):
+        mock_db = MagicMock()
+        mock_get_db.return_value = mock_db
+
+        mock_db.users.find_one.return_value = {
+            "_id": ObjectId("507f1f77bcf86cd799439079"),
+            "email": "ok@example.com",
+            "is_verified": False,
+            "last_resend_at": now - timedelta(seconds=120),
+            "resend_window_start": now - timedelta(seconds=120),
+            "resend_count": 1,
+        }
+
+        res = client.post(
+            "/api/auth/resend-verification", json={"email": "ok@example.com"}
+        )
+        assert res.status_code == 200
+        assert res.get_json()["message"] == "Verification email resent."
+
+        mock_db.users.update_one.assert_called_once()
+        mock_send.assert_called_once_with(
+            "ok@example.com",
+            "newtok",
+            base_url="http://example.test",
+        )
+
+
+def test_login_brevo_blocks_unverified(monkeypatch):
+    client = app.test_client()
+    monkeypatch.setenv("EMAIL_MODE", "brevo")
+
+    with patch("main.get_db") as mock_get_db:
+        mock_db = MagicMock()
+        mock_get_db.return_value = mock_db
+        mock_db.users.find_one.return_value = {
+            "_id": "507f1f77bcf86cd799439011",
+            "email": "u@example.com",
+            "password_hash": generate_password_hash("nice123456"),
+            "timezone": "UTC",
+            "is_verified": False,
+        }
+
+        res = client.post(
+            "/api/auth/login", json={"email": "u@example.com", "password": "nice123456"}
+        )
+        assert res.status_code == 403
+        assert res.get_json()["error"] == "email_not_verified"
+
+
+def test_login_mock_auto_verifies_unverified_user(monkeypatch):
+    client = app.test_client()
+    monkeypatch.setenv("EMAIL_MODE", "mock")
+
+    with patch("main.get_db") as mock_get_db, patch(
+        "routers.auth.login_user"
+    ) as mock_login_user:
+        mock_db = MagicMock()
+        mock_get_db.return_value = mock_db
+        mock_db.users.find_one.return_value = {
+            "_id": "507f1f77bcf86cd799439011",
+            "email": "u2@example.com",
+            "password_hash": generate_password_hash("nice123456"),
+            "timezone": "UTC",
+            "is_verified": False,
+        }
+
+        res = client.post(
+            "/api/auth/login",
+            json={"email": "u2@example.com", "password": "nice123456"},
+        )
+        assert res.status_code == 200
+        mock_db.users.update_one.assert_called_once()  # auto-verify path
+        mock_login_user.assert_called_once()
+
+
+def test_send_password_reset_email_mock_prints_link(monkeypatch):
+    from auth_utils import send_password_reset_email
+
+    monkeypatch.setenv("EMAIL_MODE", "mock")
+    monkeypatch.setenv("APP_BASE_URL", "http://localhost:8000")
+
+    with patch("builtins.print") as mock_print, patch(
+        "auth_utils.urllib.request.urlopen"
+    ) as mock_urlopen:
+        send_password_reset_email("test@example.com", "token123")
+
+        # no network call in mock mode
+        mock_urlopen.assert_not_called()
+
+        printed = "\n".join(str(c[0][0]) for c in mock_print.call_args_list if c[0])
+        assert "MOCK PASSWORD RESET EMAIL" in printed
+        assert "token123" in printed
+        assert "reset_token=token123" in printed
+
+
+def test_send_password_reset_email_brevo_missing_env(monkeypatch):
+    from auth_utils import send_password_reset_email
+
+    monkeypatch.setenv("EMAIL_MODE", "brevo")
+    monkeypatch.delenv("BREVO_API_KEY", raising=False)
+    monkeypatch.delenv("BREVO_SENDER_EMAIL", raising=False)
+
+    with patch("auth_utils.urllib.request.urlopen") as mock_urlopen, patch(
+        "builtins.print"
+    ) as mock_print:
+        send_password_reset_email("test@example.com", "token123")
+        mock_urlopen.assert_not_called()
+
+        printed = " ".join(str(c[0][0]) for c in mock_print.call_args_list if c[0])
+        assert "BREVO_API_KEY" in printed or "BREVO_SENDER_EMAIL" in printed
+
+
+def test_send_password_reset_email_brevo_success(monkeypatch):
+    from auth_utils import send_password_reset_email
+
+    monkeypatch.setenv("EMAIL_MODE", "brevo")
+    monkeypatch.setenv("BREVO_API_KEY", "fake-key")
+    monkeypatch.setenv("BREVO_SENDER_EMAIL", "sender@example.com")
+    monkeypatch.setenv("BREVO_SENDER_NAME", "DocKeeper")
+    monkeypatch.setenv("APP_BASE_URL", "http://localhost:8000")
+
+    class FakeResp:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def read(self):
+            return b"ok"
+
+    with patch(
+        "auth_utils.urllib.request.urlopen", return_value=FakeResp()
+    ) as mock_urlopen, patch("builtins.print") as mock_print:
+        send_password_reset_email("test@example.com", "token123")
+        mock_urlopen.assert_called_once()
+
+        printed = " ".join(str(c[0][0]) for c in mock_print.call_args_list if c[0])
+        assert "Sent Brevo password reset email" in printed
+
+
+def test_send_password_reset_email_brevo_failure(monkeypatch):
+    from auth_utils import send_password_reset_email
+
+    monkeypatch.setenv("EMAIL_MODE", "brevo")
+    monkeypatch.setenv("BREVO_API_KEY", "fake-key")
+    monkeypatch.setenv("BREVO_SENDER_EMAIL", "sender@example.com")
+    monkeypatch.setenv("APP_BASE_URL", "http://localhost:8000")
+
+    with patch(
+        "auth_utils.urllib.request.urlopen", side_effect=Exception("boom")
+    ), patch("builtins.print") as mock_print:
+        send_password_reset_email("test@example.com", "token123")
+
+        printed = " ".join(str(c[0][0]) for c in mock_print.call_args_list if c[0])
+        assert "Failed to send Brevo password reset email" in printed
+
+
+def test_forgot_password_invalid_email_is_generic_success():
+    client = app.test_client()
+    res = client.post("/api/auth/forgot-password", json={"email": "not-an-email"})
+    assert res.status_code == 200
+    assert "if this account exists" in res.get_json()["message"].lower()
+
+
+def test_forgot_password_user_not_found_returns_generic_no_email(monkeypatch):
+    client = app.test_client()
+
+    with patch("main.get_db") as mock_get_db, patch(
+        "routers.auth.send_password_reset_email"
+    ) as mock_send:
+        mock_db = MagicMock()
+        mock_get_db.return_value = mock_db
+        mock_db.users.find_one.return_value = None
+
+        res = client.post(
+            "/api/auth/forgot-password", json={"email": "nouser@example.com"}
+        )
+        assert res.status_code == 200
+        assert "if this account exists" in res.get_json()["message"].lower()
+
+        mock_send.assert_not_called()
+        mock_db.users.update_one.assert_not_called()
+
+
+def test_forgot_password_rate_limit_60s_naive_datetime_returns_generic(monkeypatch):
+    client = app.test_client()
+
+    naive_last = datetime.utcnow()  # naive branch coverage
+
+    with patch("main.get_db") as mock_get_db, patch(
+        "routers.auth.send_password_reset_email"
+    ) as mock_send:
+        mock_db = MagicMock()
+        mock_get_db.return_value = mock_db
+        mock_db.users.find_one.return_value = {
+            "_id": ObjectId("507f1f77bcf86cd799439501"),
+            "email": "x@example.com",
+            "reset_last_sent_at": naive_last,  # should trigger cooldown after tz-fix
+            "reset_window_start": naive_last,
+            "reset_count": 0,
+        }
+
+        res = client.post("/api/auth/forgot-password", json={"email": "x@example.com"})
+        assert res.status_code == 200
+        assert "if this account exists" in res.get_json()["message"].lower()
+
+        mock_send.assert_not_called()
+        mock_db.users.update_one.assert_not_called()
+
+
+def test_forgot_password_rate_limit_3_per_hour_returns_generic(monkeypatch):
+    from datetime import timezone
+
+    client = app.test_client()
+    now = datetime.now(timezone.utc)
+
+    with patch("main.get_db") as mock_get_db, patch(
+        "routers.auth.send_password_reset_email"
+    ) as mock_send:
+        mock_db = MagicMock()
+        mock_get_db.return_value = mock_db
+        mock_db.users.find_one.return_value = {
+            "_id": ObjectId("507f11882a1b2c3d4e5f6001"),
+            "email": "x2@example.com",
+            "reset_last_sent_at": now - timedelta(seconds=120),
+            "reset_window_start": now,
+            "reset_count": 3,
+        }
+
+        res = client.post("/api/auth/forgot-password", json={"email": "x2@example.com"})
+        assert res.status_code == 200
+        assert "if this account exists" in res.get_json()["message"].lower()
+
+        mock_send.assert_not_called()
+        mock_db.users.update_one.assert_not_called()
+
+
+def test_forgot_password_success_sets_hashed_token_and_calls_email(monkeypatch):
+    import hashlib
+    from datetime import timezone
+
+    client = app.test_client()
+
+    fixed_now = datetime(2025, 1, 1, 12, 0, tzinfo=timezone.utc)
+
+    class FakeDateTime(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return fixed_now.astimezone(tz) if tz else fixed_now.replace(tzinfo=None)
+
+    with patch("routers.auth.datetime", FakeDateTime), patch(
+        "routers.auth.secrets.token_urlsafe", return_value="rawtok"
+    ), patch("main.get_db") as mock_get_db, patch(
+        "routers.auth.send_password_reset_email"
+    ) as mock_send:
+        mock_db = MagicMock()
+        mock_get_db.return_value = mock_db
+
+        mock_db.users.find_one.return_value = {
+            "_id": ObjectId("507f1f77bcf86cd799439601"),
+            "email": "ok@example.com",
+            "reset_count": 0,
+        }
+
+        res = client.post("/api/auth/forgot-password", json={"email": "ok@example.com"})
+        assert res.status_code == 200
+        assert "if this account exists" in res.get_json()["message"].lower()
+
+        mock_send.assert_called_once()
+        args, kwargs = mock_send.call_args
+        assert args[0] == "ok@example.com"
+        assert args[1] == "rawtok"
+
+        # verify hashed token stored + expiry exactly 1 hour from fixed_now
+        mock_db.users.update_one.assert_called_once()
+        _, update_doc = mock_db.users.update_one.call_args[0]
+        set_doc = update_doc["$set"]
+        assert set_doc["reset_token_hash"] == hashlib.sha256(b"rawtok").hexdigest()
+        assert set_doc["reset_token_expires_at"] == fixed_now + timedelta(hours=1)
+
+
+def test_reset_password_missing_token():
+    client = app.test_client()
+    res = client.post(
+        "/api/auth/reset-password",
+        json={"password": "nice123456", "password2": "nice123456"},
+    )
+    assert res.status_code == 400
+    assert res.get_json()["error"] == "missing_token"
+
+
+def test_reset_password_password_too_short():
+    client = app.test_client()
+    res = client.post(
+        "/api/auth/reset-password",
+        json={"token": "t", "password": "short", "password2": "short"},
+    )
+    assert res.status_code == 400
+    assert res.get_json()["error"] == "password_too_short"
+
+
+def test_reset_password_passwords_do_not_match():
+    client = app.test_client()
+    res = client.post(
+        "/api/auth/reset-password",
+        json={"token": "t", "password": "nice123456", "password2": "nice123457"},
+    )
+    assert res.status_code == 400
+    assert res.get_json()["error"] == "passwords_do_not_match"
+
+
+def test_reset_password_invalid_or_expired_token(monkeypatch):
+    client = app.test_client()
+
+    with patch("main.get_db") as mock_get_db, patch(
+        "routers.auth.login_user"
+    ) as mock_login:
+        mock_db = MagicMock()
+        mock_get_db.return_value = mock_db
+        mock_db.users.find_one.return_value = None
+
+        res = client.post(
+            "/api/auth/reset-password",
+            json={"token": "bad", "password": "nice123456", "password2": "nice123456"},
+        )
+        assert res.status_code == 400
+        assert res.get_json()["error"] == "invalid_or_expired_token"
+        mock_login.assert_not_called()
+
+
+def test_reset_password_success_updates_clears_tokens_and_logs_in(monkeypatch):
+    import hashlib
+    from datetime import timezone
+
+    client = app.test_client()
+
+    fixed_now = datetime(2025, 1, 1, 12, 0, tzinfo=timezone.utc)
+
+    class FakeDateTime(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return fixed_now.astimezone(tz) if tz else fixed_now.replace(tzinfo=None)
+
+    user_id = ObjectId("507f1f77bcf86cd799439777")
+
+    with patch("routers.auth.datetime", FakeDateTime), patch(
+        "main.get_db"
+    ) as mock_get_db, patch("routers.auth.login_user") as mock_login:
+        mock_db = MagicMock()
+        mock_get_db.return_value = mock_db
+
+        # Return user for token lookup
+        mock_db.users.find_one.return_value = {
+            "_id": user_id,
+            "email": "reset@example.com",
+            "timezone": "UTC",
+            "is_verified": False,
+        }
+
+        token = "rawtok"
+        res = client.post(
+            "/api/auth/reset-password",
+            json={"token": token, "password": "nice123456", "password2": "nice123456"},
+        )
+        assert res.status_code == 200
+        data = res.get_json()
+        assert data["email"] == "reset@example.com"
+        assert data["timezone"] == "UTC"
+
+        # verify lookup used hashed token + expiry check
+        expected_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
+        mock_db.users.find_one.assert_called_once_with(
+            {
+                "reset_token_hash": expected_hash,
+                "reset_token_expires_at": {"$gt": fixed_now},
+            }
+        )
+
+        # verify update clears tokens + sets is_verified/password_hash
+        mock_db.users.update_one.assert_called_once()
+        _, update_doc = mock_db.users.update_one.call_args[0]
+        assert update_doc["$set"]["is_verified"] is True
+        assert isinstance(update_doc["$set"]["password_hash"], str)
+        assert "reset_token_hash" in update_doc["$unset"]
+        assert "reset_token_expires_at" in update_doc["$unset"]
+        assert "verify_token" in update_doc["$unset"]
+        assert "verify_token_expires_at" in update_doc["$unset"]
+
+        mock_login.assert_called_once()
